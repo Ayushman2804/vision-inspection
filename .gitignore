@@ -15,3 +15,6 @@ ml/demo_raw.mp4
 
 # Keep the exported ONNX model so deploys work
 !inference/models/best.onnx
+
+# Playwright MCP scratch output
+.playwright-mcp/

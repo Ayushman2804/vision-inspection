@@ -1,7 +1,7 @@
 import os
 
 os.environ["MOCK_MODE"] = "true"
-os.environ["MODEL_PATH"] = "does-not-exist.onnx"
+# MODEL_PATH is deliberately left at its default: models/best.onnx exists, and MOCK_MODE must still win.
 
 import cv2  # noqa: E402
 import numpy as np  # noqa: E402

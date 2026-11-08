@@ -1,0 +1,24 @@
+{
+  "model": "yolov8s.pt",
+  "weights": "best.pt (epoch 55; early stopping ended the run at epoch 85/100, patience 30)",
+  "mAP50": 0.7326031367903226,
+  "mAP50-95": 0.38039650864673763,
+  "precision": 0.6236028489962945,
+  "recall": 0.7038407180797429,
+  "per_class_AP50": {
+    "crazing": 0.49744580947415,
+    "inclusion": 0.8207430269109408,
+    "patches": 0.904915996830511,
+    "pitted_surface": 0.8021821389473033,
+    "rolled-in_scale": 0.5578077824145765,
+    "scratches": 0.8125240661644539
+  },
+  "per_class_AP50-95": {
+    "crazing": 0.184,
+    "inclusion": 0.4304,
+    "patches": 0.5755,
+    "pitted_surface": 0.4351,
+    "rolled-in_scale": 0.2474,
+    "scratches": 0.4098
+  }
+}

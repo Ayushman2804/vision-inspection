@@ -19,10 +19,12 @@ state: dict = {"detector": None}
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if os.path.exists(MODEL_PATH):
-        state["detector"] = Detector(MODEL_PATH, LABELS_PATH, MODEL_VERSION)
-    elif MOCK_MODE:
+    # An explicit MOCK_MODE wins over a model file on disk: best.onnx is committed, so checking the
+    # file first would silently ignore MOCK_MODE=true.
+    if MOCK_MODE:
         state["detector"] = MockDetector()
+    elif os.path.exists(MODEL_PATH):
+        state["detector"] = Detector(MODEL_PATH, LABELS_PATH, MODEL_VERSION)
     yield
     state["detector"] = None
 

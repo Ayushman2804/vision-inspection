@@ -17,7 +17,7 @@ services:
     build: ./inference
     environment:
       MODEL_VERSION: ${MODEL_VERSION:-yolov8n-neu-det-v1}
-      # Set MOCK_MODE=true to run the whole stack before a model is trained
+      # MOCK_MODE=true returns random boxes for UI work; it takes precedence over models/best.onnx
       MOCK_MODE: ${MOCK_MODE:-false}
     ports:
       - "8000:8000"
