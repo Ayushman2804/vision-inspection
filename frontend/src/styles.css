@@ -1,0 +1,67 @@
+:root {
+  --bg: #0b1220;
+  --panel: #111a2e;
+  --border: #25324d;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --fail: #f87171;
+  --pass: #4ade80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+h1, h2, h3 { margin: 0 0 8px; }
+h2 { font-size: 18px; } h3 { font-size: 15px; color: var(--muted); }
+a { color: var(--accent); }
+.muted { color: var(--muted); font-size: 13px; }
+main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; display: flex; flex-direction: column; gap: 16px; }
+
+.nav { display: flex; align-items: center; gap: 24px; padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+.nav nav { display: flex; gap: 6px; flex: 1; }
+.nav nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; }
+.nav nav a.active { background: #1e2b47; color: var(--text); }
+
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.grid { display: grid; gap: 16px; }
+.grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 800px) { .grid.two, .grid.four { grid-template-columns: 1fr; } .nav { flex-wrap: wrap; gap: 8px; } }
+
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+
+button, .btn { background: var(--accent); color: #04121f; border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer; display: inline-block; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.secondary { background: #1e2b47; color: var(--text); }
+button.link { background: none; color: var(--accent); font-weight: 400; }
+input, select { background: #0b1426; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; }
+input[type='range'] { padding: 0; }
+
+.kpi { align-items: flex-start; gap: 0; }
+.stat { font-size: 28px; font-weight: 700; display: block; }
+.stat-row { display: flex; gap: 28px; }
+.stat-row > div { display: flex; flex-direction: column; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { color: var(--muted); font-weight: 500; }
+
+.badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+.badge.pass { background: rgba(74, 222, 128, 0.15); color: var(--pass); }
+.badge.fail { background: rgba(248, 113, 113, 0.15); color: var(--fail); }
+.badge.big { font-size: 20px; padding: 6px 18px; align-self: flex-start; }
+.chip { display: inline-block; border: 1px solid; border-radius: 6px; padding: 0 6px; margin: 2px 4px 2px 0; font-size: 12px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.error { background: rgba(248, 113, 113, 0.12); color: var(--fail); padding: 8px 12px; border-radius: 8px; }
+.alert-banner { background: rgba(248, 113, 113, 0.18); border: 1px solid var(--fail); color: #fecaca; padding: 10px 12px; border-radius: 8px; font-weight: 600; }
+ul.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.bbox-canvas, .preview { width: 100%; height: auto; border-radius: 8px; background: #000; }
+.thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; }
+.video-wrap { position: relative; background: #000; border-radius: 8px; overflow: hidden; }
+.video-wrap video { display: block; width: 100%; height: auto; min-height: 120px; }
+.video-wrap .overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+.auth-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.auth { width: 100%; max-width: 380px; }

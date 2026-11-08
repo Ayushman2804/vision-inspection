@@ -1,0 +1,24 @@
+{
+  "model": "yolov8n.pt",
+  "weights": "best.pt (epoch 92; run stopped at epoch 98/100 by low system memory)",
+  "mAP50": 0.7168813109343577,
+  "mAP50-95": 0.37988688999765924,
+  "precision": 0.7118476851194068,
+  "recall": 0.6251998886807267,
+  "per_class_AP50": {
+    "crazing": 0.48388476626619736,
+    "inclusion": 0.7806371826230376,
+    "patches": 0.9076520811250448,
+    "pitted_surface": 0.7728940363446536,
+    "rolled-in_scale": 0.5406131198175208,
+    "scratches": 0.8156066794296922
+  },
+  "per_class_AP50-95": {
+    "crazing": 0.20522285121532993,
+    "inclusion": 0.42241707898136405,
+    "patches": 0.5945289752426178,
+    "pitted_surface": 0.41323824214801147,
+    "rolled-in_scale": 0.21668026295405368,
+    "scratches": 0.4272339294445784
+  }
+}

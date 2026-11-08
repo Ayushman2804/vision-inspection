@@ -1,0 +1,17 @@
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+uploads/
+
+# ML artifacts
+ml/data/
+ml/runs/
+ml/*.pt
+ml/demo_raw.mp4
+*.pt
+
+# Keep the exported ONNX model so deploys work
+!inference/models/best.onnx
