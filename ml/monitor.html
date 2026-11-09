@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training monitor</title>
+<!--
+  Live view of an Ultralytics run, one row per epoch, compared with a baseline run.
+  Serve the ml/ folder (python -m http.server 8765 --bind 127.0.0.1) and open
+  http://127.0.0.1:8765/monitor.html?run=neu-det-v1-26n&base=neu-det-v1&epochs=100
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#0b1220; --card:#111a2e; --line:#24324d; --text:#e2e8f0; --muted:#94a3b8; --a:#38bdf8; --b:#f59e0b; --good:#4ade80; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 system-ui, sans-serif; padding:16px; }
+  h1 { font-size:18px; font-weight:600; margin:0 0 4px; }
+  .muted { color:var(--muted); }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:14px 0; }
+  .kpi, .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px; }
+  .kpi b { display:block; font-size:22px; font-weight:600; }
+  .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin-top:6px; }
+  .bar i { display:block; height:100%; background:var(--a); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; }
+  .card h2 { font-size:14px; font-weight:600; margin:0 0 8px; }
+  canvas { max-height:260px; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { padding:4px 8px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  tr.best td { color:var(--good); }
+  .tablewrap { max-height:420px; overflow:auto; }
+  .status { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:var(--line); }
+  .status.done { background:#14532d; color:var(--good); }
+</style>
+</head>
+<body>
+<h1>Training monitor: <span id="run"></span></h1>
+<div class="muted">Baseline: <span id="base"></span> · refreshes every 10 s · <span id="updated">loading…</span> <span id="state" class="status">training</span></div>
+
+<div class="kpis">
+  <div class="kpi"><span class="muted">Epoch</span><b id="k-epoch">–</b><div class="bar"><i id="k-bar" style="width:0"></i></div></div>
+  <div class="kpi"><span class="muted">mAP@0.5 (latest)</span><b id="k-map50">–</b></div>
+  <div class="kpi"><span class="muted">Best mAP@0.5</span><b id="k-best">–</b><span class="muted" id="k-bestep"></span></div>
+  <div class="kpi"><span class="muted">Baseline best mAP@0.5</span><b id="k-base">–</b></div>
+  <div class="kpi"><span class="muted">Time per epoch / ETA</span><b id="k-eta">–</b></div>
+</div>
+
+<div class="grid">
+  <div class="card"><h2>mAP@0.5 per epoch</h2><canvas id="c-map50"></canvas></div>
+  <div class="card"><h2>mAP@0.5:0.95 per epoch</h2><canvas id="c-map"></canvas></div>
+  <div class="card"><h2>Precision and recall</h2><canvas id="c-pr"></canvas></div>
+  <div class="card"><h2>Losses (train solid, val dashed)</h2><canvas id="c-loss"></canvas></div>
+</div>
+
+<div class="card" style="margin-top:12px">
+  <h2>Every epoch</h2>
+  <div class="tablewrap"><table id="tbl"></table></div>
+</div>
+
+<script>
+const q = new URLSearchParams(location.search);
+const RUN = q.get('run') || 'neu-det-v1-26n';
+const BASE = q.get('base') || 'neu-det-v1';
+const TOTAL = Number(q.get('epochs') || 100);
+document.getElementById('run').textContent = RUN;
+document.getElementById('base').textContent = BASE;
+
+async function loadCsv(name) {
+  try {
+    const res = await fetch(`runs/${name}/results.csv?t=${Date.now()}`);
+    if (!res.ok) return [];
+    const [head, ...lines] = (await res.text()).trim().split(/\r?\n/);
+    const keys = head.split(',').map((s) => s.trim());
+    return lines.filter(Boolean).map((l) => Object.fromEntries(l.split(',').map((v, i) => [keys[i], Number(v)])));
+  } catch { return []; }
+}
+async function isDone(name) {
+  try { return (await fetch(`runs/${name}/metrics_summary.json?t=${Date.now()}`)).ok; } catch { return false; }
+}
+
+const C = getComputedStyle(document.documentElement);
+const col = (v) => C.getPropertyValue(v).trim();
+Chart.defaults.color = col('--muted');
+Chart.defaults.borderColor = col('--line');
+Chart.defaults.animation = false;
+const opts = { responsive: true, interaction: { mode: 'index', intersect: false }, scales: { x: { title: { display: true, text: 'epoch' } } }, plugins: { legend: { labels: { boxWidth: 12 } } }, elements: { point: { radius: 0 } } };
+const mk = (id) => new Chart(document.getElementById(id), { type: 'line', data: { labels: [], datasets: [] }, options: opts });
+const charts = { map50: mk('c-map50'), map: mk('c-map'), pr: mk('c-pr'), loss: mk('c-loss') };
+const ds = (label, data, color, dash) => ({ label, data, borderColor: color, backgroundColor: color, borderWidth: 2, borderDash: dash ? [5, 4] : [], tension: 0.2 });
+
+function render(run, base, done) {
+  const n = Math.max(run.length, base.length);
+  const labels = Array.from({ length: n }, (_, i) => i + 1);
+  const pick = (rows, k) => rows.map((r) => r[k]);
+  const a = col('--a'), b = col('--b');
+
+  charts.map50.data = { labels, datasets: [ds(RUN, pick(run, 'metrics/mAP50(B)'), a), ds(BASE, pick(base, 'metrics/mAP50(B)'), b, true)] };
+  charts.map.data = { labels, datasets: [ds(RUN, pick(run, 'metrics/mAP50-95(B)'), a), ds(BASE, pick(base, 'metrics/mAP50-95(B)'), b, true)] };
+  charts.pr.data = { labels, datasets: [ds('precision', pick(run, 'metrics/precision(B)'), a), ds('recall', pick(run, 'metrics/recall(B)'), col('--good'))] };
+  charts.loss.data = { labels, datasets: [
+    ds('train box', pick(run, 'train/box_loss'), a), ds('val box', pick(run, 'val/box_loss'), a, true),
+    ds('train cls', pick(run, 'train/cls_loss'), b), ds('val cls', pick(run, 'val/cls_loss'), b, true),
+  ] };
+  Object.values(charts).forEach((c) => c.update());
+
+  if (!run.length) return;
+  const last = run[run.length - 1];
+  const best = run.reduce((m, r) => (r['metrics/mAP50(B)'] > m['metrics/mAP50(B)'] ? r : m), run[0]);
+  const baseBest = base.length ? Math.max(...pick(base, 'metrics/mAP50(B)')) : NaN;
+  const perEpoch = last.time / last.epoch;
+  const left = Math.max(0, TOTAL - last.epoch);
+  document.getElementById('k-epoch').textContent = `${last.epoch} / ${TOTAL}`;
+  document.getElementById('k-bar').style.width = `${Math.min(100, (last.epoch / TOTAL) * 100)}%`;
+  document.getElementById('k-map50').textContent = last['metrics/mAP50(B)'].toFixed(3);
+  document.getElementById('k-best').textContent = best['metrics/mAP50(B)'].toFixed(3);
+  document.getElementById('k-bestep').textContent = ` at epoch ${best.epoch}`;
+  document.getElementById('k-base').textContent = Number.isNaN(baseBest) ? '–' : baseBest.toFixed(3);
+  document.getElementById('k-eta').textContent = done ? 'finished' : `${perEpoch.toFixed(0)} s / ~${Math.round((left * perEpoch) / 60)} min`;
+  const state = document.getElementById('state');
+  state.textContent = done ? 'finished' : 'training';
+  state.className = done ? 'status done' : 'status';
+
+  const cols = [['epoch', 'Epoch', 0], ['metrics/mAP50(B)', 'mAP@0.5', 3], ['metrics/mAP50-95(B)', 'mAP@0.5:0.95', 3], ['metrics/precision(B)', 'P', 3], ['metrics/recall(B)', 'R', 3],
+    ['train/box_loss', 'train box', 3], ['train/cls_loss', 'train cls', 3], ['val/box_loss', 'val box', 3], ['val/cls_loss', 'val cls', 3], ['time', 'elapsed (min)', 1]];
+  const rows = [...run].reverse().map((r) => `<tr class="${r.epoch === best.epoch ? 'best' : ''}">${cols.map(([k, , d]) => `<td>${k === 'time' ? (r[k] / 60).toFixed(d) : r[k].toFixed(d)}</td>`).join('')}</tr>`);
+  document.getElementById('tbl').innerHTML = `<tr>${cols.map(([, h]) => `<th>${h}</th>`).join('')}</tr>${rows.join('')}`;
+}
+
+async function tick() {
+  const [run, base, done] = await Promise.all([loadCsv(RUN), loadCsv(BASE), isDone(RUN)]);
+  render(run, base, done);
+  document.getElementById('updated').textContent = `updated ${new Date().toLocaleTimeString()}`;
+  if (!done) setTimeout(tick, 10000);
+}
+tick();
+</script>
+</body>
+</html>

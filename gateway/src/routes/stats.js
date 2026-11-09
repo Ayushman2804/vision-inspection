@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
-import { asyncHandler, clamp } from '../utils.js';
+import { clamp } from '../utils.js';
 
 const router = Router();
 
 router.get(
   '/stats',
   requireAuth,
-  asyncHandler(async (req, res) => {
+  async (req, res) => {
     const days = clamp(req.query.days, 1, 90, 7);
     const uid = req.user.id;
     const unit = days <= 2 ? 'hour' : 'day'; // whitelisted value, safe to interpolate
@@ -49,19 +49,19 @@ router.get(
       by_class: byClass.rows,
       timeline: timeline.rows,
     });
-  }),
+  },
 );
 
 router.get(
   '/alerts',
   requireAuth,
-  asyncHandler(async (req, res) => {
+  async (req, res) => {
     const { rows } = await pool.query(
       'SELECT id, rule, details, triggered_at FROM alerts WHERE user_id = $1 ORDER BY id DESC LIMIT 50',
       [req.user.id],
     );
     res.json({ items: rows });
-  }),
+  },
 );
 
 export default router;

@@ -1,0 +1,41 @@
+{
+  "model": "yolo26n.pt",
+  "mAP50": 0.7386786782615996,
+  "mAP50-95": 0.4039019253448529,
+  "precision": 0.7389059615697776,
+  "recall": 0.6618360225288205,
+  "per_class_AP50": {
+    "crazing": 0.4960245890100524,
+    "inclusion": 0.8266042365093574,
+    "patches": 0.9130446918222558,
+    "pitted_surface": 0.7862684664645382,
+    "rolled-in_scale": 0.5842678919361759,
+    "scratches": 0.8258621938272179
+  },
+  "weights": "best.pt (100/100 epochs, no early stop)",
+  "per_class_AP50-95": {
+    "crazing": 0.192,
+    "inclusion": 0.45,
+    "patches": 0.576,
+    "pitted_surface": 0.465,
+    "rolled-in_scale": 0.249,
+    "scratches": 0.491
+  },
+  "f1": {
+    "peak": 0.692,
+    "peak_conf": 0.312,
+    "at_conf_0.25": {
+      "P": 0.674,
+      "R": 0.696,
+      "F1": 0.679
+    },
+    "per_class_peak_conf": {
+      "crazing": 0.14,
+      "inclusion": 0.52,
+      "patches": 0.53,
+      "pitted_surface": 0.37,
+      "rolled-in_scale": 0.31,
+      "scratches": 0.52
+    }
+  }
+}

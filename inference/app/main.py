@@ -10,7 +10,7 @@ from .detector import Detector, MockDetector
 
 MODEL_PATH = os.getenv("MODEL_PATH", "models/best.onnx")
 LABELS_PATH = os.getenv("LABELS_PATH", "models/labels.json")
-MODEL_VERSION = os.getenv("MODEL_VERSION", "yolov8n-neu-det-v1")
+MODEL_VERSION = os.getenv("MODEL_VERSION", "yolo26n-neu-det-v1")
 MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() in ("1", "true", "yes")
 MAX_BYTES = 10 * 1024 * 1024
 

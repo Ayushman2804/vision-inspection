@@ -96,7 +96,8 @@ export default function Dashboard() {
               <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 11 }} />
               <YAxis allowDecimals={false} tick={{ fill: '#94a3b8' }} />
               <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155' }} />
-              <Legend />
+              {/* Recharts 3 sorts legend items alphabetically by default; keep the series order. */}
+              <Legend itemSorter={null} />
               <Line type="monotone" dataKey="Inspected" stroke="#38bdf8" dot={false} strokeWidth={2} />
               <Line type="monotone" dataKey="Defective" stroke="#f87171" dot={false} strokeWidth={2} />
             </LineChart>

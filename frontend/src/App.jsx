@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router';
 import { getToken, setToken } from './api.js';
-import Dashboard from './pages/Dashboard.jsx';
-import History from './pages/History.jsx';
-import Live from './pages/Live.jsx';
 import Login from './pages/Login.jsx';
-import Upload from './pages/Upload.jsx';
+
+// Split per page so the chart library (Recharts) only loads with the Dashboard.
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const History = lazy(() => import('./pages/History.jsx'));
+const Live = lazy(() => import('./pages/Live.jsx'));
+const Upload = lazy(() => import('./pages/Upload.jsx'));
 
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
@@ -39,13 +41,15 @@ export default function App() {
         </button>
       </header>
       <main>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/live" element={<Live />} />
-          <Route path="/upload" element={<Upload />} />
-          <Route path="/history" element={<History />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<p className="muted">Loading…</p>}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/live" element={<Live />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/history" element={<History />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
     </BrowserRouter>
   );

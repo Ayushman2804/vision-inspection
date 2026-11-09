@@ -1,4 +1,4 @@
-ultralytics>=8.3.0
+ultralytics>=8.4.0   # 8.4+ for YOLO26
 onnx>=1.16
 onnxslim
 onnxruntime-gpu>=1.18   # use onnxruntime if you have no CUDA

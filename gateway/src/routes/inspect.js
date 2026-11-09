@@ -8,7 +8,7 @@ import { pool } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { evaluateAlert } from '../services/alerts.js';
 import { runInference } from '../services/inference.js';
-import { HttpError, asyncHandler, clamp } from '../utils.js';
+import { HttpError, clamp } from '../utils.js';
 
 const EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
@@ -25,7 +25,7 @@ router.post(
   '/inspect',
   requireAuth,
   upload.single('image'),
-  asyncHandler(async (req, res) => {
+  async (req, res) => {
     if (!req.file) throw new HttpError(400, 'Missing image file (form field "image")');
     const conf = clamp(req.body.conf, 0.05, 0.95, 0.25);
     const source = req.body.source === 'video' ? 'video' : 'upload';
@@ -71,13 +71,13 @@ router.post(
 
     const alert = await evaluateAlert(req.user.id);
     res.status(201).json({ inspection, detections, image: result.image, alert });
-  }),
+  },
 );
 
 router.get(
   '/inspections',
   requireAuth,
-  asyncHandler(async (req, res) => {
+  async (req, res) => {
     const limit = clamp(req.query.limit, 1, 100, 20);
     const offset = clamp(req.query.offset, 0, 1_000_000, 0);
     const where = ['i.user_id = $1'];
@@ -115,7 +115,7 @@ router.get(
       params,
     );
     res.json({ total: total.rows[0].n, limit, offset, items: rows });
-  }),
+  },
 );
 
 export default router;

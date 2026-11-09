@@ -1,12 +1,12 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: inspection
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata18:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d inspection"]
       interval: 5s
@@ -16,7 +16,7 @@ services:
   inference:
     build: ./inference
     environment:
-      MODEL_VERSION: ${MODEL_VERSION:-yolov8n-neu-det-v1}
+      MODEL_VERSION: ${MODEL_VERSION:-yolo26n-neu-det-v1}
       # MOCK_MODE=true returns random boxes for UI work; it takes precedence over models/best.onnx
       MOCK_MODE: ${MOCK_MODE:-false}
     ports:
@@ -31,6 +31,10 @@ services:
       CORS_ORIGINS: http://localhost:5173
       UPLOAD_DIR: /data/uploads
       NODE_ENV: development
+      # Alert rule; override e.g. ALERT_WINDOW=3 for faster e2e checks (scripts/e2e_check.js)
+      ALERT_WINDOW: ${ALERT_WINDOW:-20}
+      ALERT_THRESHOLD: ${ALERT_THRESHOLD:-0.5}
+      ALERT_COOLDOWN_SEC: ${ALERT_COOLDOWN_SEC:-60}
     volumes:
       - uploads:/data/uploads
     depends_on:
@@ -52,5 +56,5 @@ services:
       - "5173:80"
 
 volumes:
-  pgdata:
+  pgdata18:
   uploads:
