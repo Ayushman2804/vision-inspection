@@ -237,6 +237,16 @@ cd frontend && npm run build
 
 GitHub Actions (`.github/workflows/ci.yml`) runs all three (Python 3.13, Node 24) and a `docker compose build`.
 
+**End-to-end API check** against a running stack (27 assertions: auth, inspect, uploads, history filters, stats, alert rule and cooldown, per-user isolation):
+
+```bash
+docker compose up --build -d
+node scripts/e2e_check.js                                   # exit code 1 on any failure
+ALERT_WINDOW=3 docker compose up -d gateway && ALERT_WINDOW=3 node scripts/e2e_check.js   # faster alert check
+```
+
+It creates fresh `e2e-*@example.test` users on each run. Not in CI yet (needs a Postgres service container).
+
 ## Roadmap (improvements for later)
 
 - Human review queue: confirm or reject detections and export corrections as retraining data (`defects.reviewed` / `review_label` columns already exist)
