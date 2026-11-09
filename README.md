@@ -38,6 +38,8 @@ All captured against the shipped YOLOv8n model on NEU-DET validation images (not
 | `gateway/` | Express API: auth, `/api/inspect`, history, stats, alerts, Postgres schema |
 | `frontend/` | React dashboard (Dashboard, Live video, Upload, History) |
 
+Developer docs: [`docs/architecture.md`](docs/architecture.md) (request flow, schema, env vars), [`docs/project-status.md`](docs/project-status.md), [`CHANGELOG.md`](CHANGELOG.md). [`CLAUDE.md`](CLAUDE.md) holds the conventions for working on the repo with Claude Code.
+
 ## Quick start
 
 The trained YOLOv8n model (`inference/models/best.onnx`) is in the repo, so the whole stack runs with real detections out of the box:
@@ -49,7 +51,7 @@ docker compose up --build
 
 Register an account on the login screen, then try Upload and Live video ("Load sample" plays a clip built from NEU-DET validation images).
 
-For UI work without the model, `MOCK_MODE=true docker compose up --build` returns random boxes instead. `MOCK_MODE` takes precedence over the model file.
+For UI work without the model, `MOCK_MODE=true docker compose up --build` returns random boxes instead. `MOCK_MODE` takes precedence over the model file. To keep overrides (`JWT_SECRET`, `MOCK_MODE`, `MODEL_VERSION`) between runs, copy `.env.example` to `.env`; Compose reads it automatically.
 
 ## Step 1: train the model (local GPU)
 
