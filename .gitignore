@@ -18,3 +18,6 @@ ml/demo_raw.mp4
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# Claude Code local settings
+.claude/
