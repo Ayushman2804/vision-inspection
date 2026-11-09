@@ -21,13 +21,13 @@ React (Vite)  ──REST──►  Node/Express gateway  ──HTTP──►  Fa
 
 ## Screenshots
 
-Captured against the previous YOLOv8n model on NEU-DET validation images (not mock mode); the UI is unchanged with YOLO26n.
+All captured against the shipped YOLO26n model on NEU-DET validation images, with a fresh account holding only real inspections (no mock or seeded data).
 
 ![Dashboard](docs/screenshots/dashboard.png)
-*Dashboard: KPIs, defects by class, throughput, and the defect-rate alert firing.*
+*Dashboard (last 24 hours): KPIs, defects by class, throughput, and the defect-rate alert firing. All inspections fell in one hour, so the timeline is a single point.*
 
 ![Live video inspection](docs/screenshots/live.png)
-*Live video: frames sampled in the browser at 3 fps, with detections drawn on the overlay (~35 ms per frame on CPU).*
+*Live video: frames sampled in the browser at 3 fps, with detections drawn on the overlay (~42 ms average model latency on CPU in Docker).*
 
 | Upload | History |
 |---|---|
@@ -35,6 +35,8 @@ Captured against the previous YOLOv8n model on NEU-DET validation images (not mo
 | *Single-image inspection with verdict and detections table* | *Filterable history with per-defect chips* |
 
 **Live video on the web:** the browser plays a video file, samples ~3 frames/sec onto a canvas, sends each to the gateway, and draws the returned boxes on an overlay. Nothing runs on the user's machine except the browser, so it deploys as-is.
+
+**Keep the Live tab in the foreground.** Measured at a full 3.0 fps when focused (round trip ~61 ms: ~35 ms model, ~26 ms gateway + DB). When the tab is hidden or the window isn't visible, the browser throttles `canvas.toBlob()` to about one callback per second, so sampling drops to roughly 1–2 fps. The timer itself keeps running; it's the frame encoding that waits.
 
 **Defect classes:** crazing, inclusion, patches, pitted_surface, rolled-in_scale, scratches.
 
