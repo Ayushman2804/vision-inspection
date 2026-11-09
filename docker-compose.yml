@@ -1,12 +1,12 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: inspection
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata18:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d inspection"]
       interval: 5s
@@ -52,5 +52,5 @@ services:
       - "5173:80"
 
 volumes:
-  pgdata:
+  pgdata18:
   uploads:

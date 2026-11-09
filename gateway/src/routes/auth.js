@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { config } from '../config.js';
-import { HttpError, asyncHandler } from '../utils.js';
+import { HttpError } from '../utils.js';
 
 const router = Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,7 +21,7 @@ function validate(body) {
 
 router.post(
   '/register',
-  asyncHandler(async (req, res) => {
+  async (req, res) => {
     const { email, password } = validate(req.body);
     const hash = await bcrypt.hash(password, 10);
     try {
@@ -34,12 +34,12 @@ router.post(
       if (e.code === '23505') throw new HttpError(409, 'Email already registered');
       throw e;
     }
-  }),
+  },
 );
 
 router.post(
   '/login',
-  asyncHandler(async (req, res) => {
+  async (req, res) => {
     const { email, password } = validate(req.body);
     const { rows } = await pool.query('SELECT id, email, role, password_hash FROM users WHERE email = $1', [email]);
     const user = rows[0];
@@ -47,7 +47,7 @@ router.post(
       throw new HttpError(401, 'Invalid email or password');
     }
     res.json({ token: sign(user), user: { id: user.id, email: user.email, role: user.role } });
-  }),
+  },
 );
 
 export default router;
