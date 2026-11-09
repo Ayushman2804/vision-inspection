@@ -49,7 +49,7 @@ def match(ref, test):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--weights", default="runs/neu-det-v1/weights/best.pt")
+    ap.add_argument("--weights", default="runs/neu-det-v1-26n/weights/best.pt")
     ap.add_argument("--onnx", default=str(ROOT / "inference/models/best.onnx"))
     ap.add_argument("--labels", default=str(ROOT / "inference/models/labels.json"))
     ap.add_argument("--images", default="data/neu-det/images/val")

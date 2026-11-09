@@ -46,3 +46,30 @@ def test_postprocess_maps_back_to_original_coords_and_applies_nms():
 def test_postprocess_empty_when_nothing_confident():
     out = _raw_output([(100, 100, 20, 20, 0, 0.05)])
     assert postprocess(out, 1.0, 0, 0, 640, 640, conf_thres=0.25) == []
+
+
+def _end2end_output(rows, max_det=300):
+    """YOLO26 end2end export: (1, max_det, 6) rows of x1, y1, x2, y2, score, class, zero-padded."""
+    out = np.zeros((1, max_det, 6), dtype=np.float32)
+    for i, row in enumerate(rows):
+        out[0, i] = row
+    return out
+
+
+def test_postprocess_end2end_maps_coords_and_skips_nms():
+    # Same geometry as the raw-head test: 200x200 image, ratio 3.2, no padding.
+    out = _end2end_output(
+        [
+            (288, 288, 352, 352, 0.9, 2),  # -> bbox [90, 90, 110, 110]
+            (290, 288, 354, 352, 0.8, 2),  # overlapping: the model already decided to keep it
+            (40, 40, 80, 80, 0.1, 5),      # below threshold
+        ]
+    )
+    dets = postprocess(out, ratio=3.2, pad_left=0, pad_top=0, orig_w=200, orig_h=200, conf_thres=0.25)
+    assert [d["confidence"] for d in dets] == [0.9, 0.8]
+    assert dets[0]["class_name"] == DEFAULT_LABELS[2]
+    assert dets[0]["bbox"] == [90.0, 90.0, 110.0, 110.0]
+
+
+def test_postprocess_end2end_empty_padding_rows():
+    assert postprocess(_end2end_output([]), 1.0, 0, 0, 640, 640, conf_thres=0.25) == []

@@ -1,7 +1,7 @@
 """Export trained weights to ONNX and install them into the inference service.
 
 Usage:
-    python export_onnx.py --weights runs/neu-det-v1/weights/best.pt --version yolov8n-neu-det-v1
+    python export_onnx.py --weights runs/neu-det-v1-26n/weights/best.pt --version yolo26n-neu-det-v1
 
 By default this overwrites the deployed model in inference/models/. To evaluate a candidate without
 touching it, pass --out-dir, e.g. --out-dir runs/neu-det-v1-s/onnx
@@ -20,13 +20,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--weights", required=True)
     ap.add_argument("--imgsz", type=int, default=640)
-    ap.add_argument("--version", default="yolov8n-neu-det-v1")
+    ap.add_argument("--version", default="yolo26n-neu-det-v1")
+    ap.add_argument("--opset", type=int, default=None,
+                    help="ONNX opset (default: let Ultralytics pick one the model supports; YOLOv8 was exported with 12)")
     ap.add_argument("--out-dir", default=str(MODELS_DIR),
                     help="where to write best.onnx/labels.json/model_meta.json (default: the deployed inference/models)")
+    ap.add_argument("--end2end", action="store_true",
+                    help="YOLO26: export the NMS-free head, output (1, 300, 6). Without it you get the raw (1, 4+nc, 8400) head")
     args = ap.parse_args()
 
     model = YOLO(args.weights)
-    onnx_path = Path(model.export(format="onnx", imgsz=args.imgsz, opset=12, simplify=True, dynamic=False))
+    extra = {"nms": False} if args.end2end else {}  # Ultralytics 8.4 exports the end2end branch only when nms=False
+    onnx_path = Path(model.export(format="onnx", imgsz=args.imgsz, opset=args.opset, simplify=True, dynamic=False, **extra))
 
     out = Path(args.out_dir).resolve()
     out.mkdir(parents=True, exist_ok=True)

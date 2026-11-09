@@ -1,4 +1,5 @@
-"""ONNX Runtime YOLOv8 detector: letterbox pre-processing, NumPy post-processing + NMS."""
+"""ONNX Runtime YOLO detector (YOLO26 end2end or YOLOv8-style raw head): letterbox pre-processing,
+NumPy post-processing, and NMS when the model doesn't do it itself."""
 from __future__ import annotations
 
 import json
@@ -54,33 +55,56 @@ def nms(boxes: np.ndarray, scores: np.ndarray, iou_thres: float) -> list[int]:
     return keep
 
 
-# NMS IoU 0.7 matches ultralytics val, so deployed behaviour matches the reported mAP.
-def postprocess(output, ratio, pad_left, pad_top, orig_w, orig_h, conf_thres=0.25, iou_thres=0.7, labels=None):
-    """Decode raw YOLOv8 output of shape (1, 4+nc, N) into detections in original-image pixels."""
-    labels = labels or DEFAULT_LABELS
-    nc = len(labels)
-    pred = np.squeeze(output, axis=0)
+def is_end2end(pred: np.ndarray, nc: int) -> bool:
+    """True for NMS-free (YOLO26 end2end) output: (max_det, 6) rows of x1, y1, x2, y2, score, class."""
+    return pred.ndim == 2 and pred.shape[1] == 6 and pred.shape[0] != 4 + nc
+
+
+def _decode_raw(pred: np.ndarray, nc: int):
+    """YOLOv8/YOLO11 raw head (4+nc, N) or (N, 4+nc) -> xyxy boxes, scores, class ids (input pixels)."""
     if pred.shape[0] == 4 + nc:
         pred = pred.T  # -> (N, 4+nc)
     boxes, scores = pred[:, :4], pred[:, 4 : 4 + nc]
     class_ids = scores.argmax(axis=1)
     confs = scores[np.arange(len(scores)), class_ids]
-
-    mask = confs >= conf_thres
-    if not mask.any():
-        return []
-    boxes, confs, class_ids = boxes[mask], confs[mask], class_ids[mask]
-
     xyxy = np.empty_like(boxes)
     xyxy[:, 0] = boxes[:, 0] - boxes[:, 2] / 2
     xyxy[:, 1] = boxes[:, 1] - boxes[:, 3] / 2
     xyxy[:, 2] = boxes[:, 0] + boxes[:, 2] / 2
     xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2
+    return xyxy, confs, class_ids
+
+
+# NMS IoU 0.7 matches ultralytics val, so deployed behaviour matches the reported mAP.
+def postprocess(output, ratio, pad_left, pad_top, orig_w, orig_h, conf_thres=0.25, iou_thres=0.7, labels=None):
+    """Decode model output into detections in original-image pixels.
+
+    Supports both export formats:
+    - raw YOLOv8/YOLO11 head, shape (1, 4+nc, N): cx, cy, w, h + per-class scores; needs NMS here.
+    - NMS-free YOLO26 end2end, shape (1, max_det, 6): x1, y1, x2, y2, score, class; NMS already done
+      by the model, so `iou_thres` is ignored.
+    """
+    labels = labels or DEFAULT_LABELS
+    nc = len(labels)
+    pred = np.squeeze(output, axis=0)
+    end2end = is_end2end(pred, nc)
+    if end2end:
+        xyxy, confs, class_ids = pred[:, :4].copy(), pred[:, 4], pred[:, 5].astype(int)
+    else:
+        xyxy, confs, class_ids = _decode_raw(pred, nc)
+
+    mask = (confs >= conf_thres) & (class_ids >= 0) & (class_ids < nc)
+    if not mask.any():
+        return []
+    xyxy, confs, class_ids = xyxy[mask], confs[mask], class_ids[mask]
 
     xyxy[:, [0, 2]] = ((xyxy[:, [0, 2]] - pad_left) / ratio).clip(0, orig_w)
     xyxy[:, [1, 3]] = ((xyxy[:, [1, 3]] - pad_top) / ratio).clip(0, orig_h)
 
-    keep = nms(xyxy + class_ids[:, None] * 4096.0, confs, iou_thres)  # class-aware NMS via offset trick
+    if end2end:
+        keep = [int(i) for i in confs.argsort()[::-1]]
+    else:
+        keep = nms(xyxy + class_ids[:, None] * 4096.0, confs, iou_thres)  # class-aware NMS via offset trick
     img_area = float(orig_w * orig_h)
     dets = []
     for i in keep:
