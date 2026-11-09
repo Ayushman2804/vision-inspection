@@ -1,0 +1,66 @@
+# Dev log
+
+One entry per working day, newest first. What we did, what we decided and why, what's blocked, and what's next.
+This is the running diary; [CHANGELOG.md](../CHANGELOG.md) lists what shipped, and [project-status.md](project-status.md) is the current snapshot.
+
+Template:
+
+```
+## YYYY-MM-DD
+**Did**
+- ...
+**Decided**
+- ... (why)
+**Open / blocked**
+- ...
+**Next**
+- ...
+```
+
+---
+
+## 2026-11-09
+
+**Did**
+- Researched a Claude Code workflow video ("Plan, Setup, Build") and applied its setup checklist here: `CLAUDE.md`, `docs/architecture.md`, `docs/project-status.md`, `CHANGELOG.md`, root `.env.example`.
+- Branch `chore/claude-code-setup`: committed the Node 24 runtime bump and the docs (2 commits, not pushed).
+- Ran the full stack locally and walked through it as a user: register, Live video with the sample clip, Dashboard, History. All worked with the real YOLOv8n model.
+- Upgraded the stack: React 19, Vite 8, React Router 7, Recharts 3, Express 5, Python 3.13, FastAPI 0.162, ONNX Runtime 1.31, PostgreSQL 18, nginx 1.30.6. Tests: inference 8/8, gateway 7/7; frontend builds; checked in the browser.
+- Frontend pages lazy-loaded (initial JS 675 kB → 264 kB); restored legend order after Recharts 3 changed it.
+- Inference now decodes YOLO26's NMS-free output as well as YOLOv8's.
+- Added `npm run seed` for mock demo history (tagged `seed-demo`).
+- Trained YOLO26n on NEU-DET (local RTX 3050, same settings as YOLOv8n), watched it with the new `ml/monitor.html`, then parity-checked, benchmarked and deployed it.
+
+**Decided**
+- Use React Router 7, not the newer 8, to match the agreed upgrade list.
+- YOLO26n replaces YOLOv8n only if mAP@0.5 is at most 0.01 lower and CPU latency improves.
+- Postgres 18 uses a new `pgdata18` volume; the old local Postgres 16 data is left untouched rather than migrated (local dev data only).
+- Mock data stays clearly tagged and is never shown as real model results.
+- **YOLO26n ships.** Training finished (100 epochs, ~50 min): mAP@0.5 0.739 vs 0.717, mAP@0.5:0.95 0.404 vs 0.380, better AP@0.5 on all classes, CPU p50 31 vs 36 ms. Clears the swap rule.
+- Deploy the raw head + NMS, not the NMS-free `--end2end` export: the end2end branch disagreed with PyTorch on 37/50 images, while the raw export matched 50/50 (max 0.06 px). The checkpoint validates through the raw head, so that's what the 0.739 describes.
+- The "~2× faster on CPU" claim from the upgrade table wasn't reproduced: ~13% here, because we still run NMS like YOLOv8n.
+
+**Open / blocked**
+- Live video sampled ~1 fps instead of 3 fps in the browser-pane test; not investigated.
+- Everything since the two morning commits (stack upgrade, seed, monitor, model swap, docs) is not committed yet.
+- README screenshots still show YOLOv8n.
+- A first validation run hung in Windows dataloader workers; rerunning with `workers=0` fixed it.
+
+**Next**
+- Commit the upgrade and model swap, push the branch, open a PR.
+- Check the Live frame rate in a normal browser, retake screenshots, then plan deployment.
+
+## 2026-11-08
+
+**Did**
+- Initial platform: FastAPI + ONNX inference, Express gateway with JWT, Postgres and alerts, React dashboard, ML scripts, CI.
+- Trained YOLOv8n and YOLOv8s on NEU-DET; exported, parity-checked and benchmarked both.
+- Shipped YOLOv8n; added demo video and screenshots.
+
+**Decided**
+- YOLOv8n over YOLOv8s: +0.016 mAP@0.5 wasn't worth 2.75× the CPU latency (threshold set in advance: +0.03).
+- Default confidence 0.25 to favour recall.
+- `MOCK_MODE` takes precedence over the committed model file.
+
+**Next**
+- Stack review and deployment planning.

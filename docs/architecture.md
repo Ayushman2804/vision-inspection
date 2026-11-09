@@ -2,6 +2,8 @@
 
 ## Services
 
+Versions: React 19 / Vite 8 / React Router 7 / Recharts 3 served by nginx 1.30; Node 24 + Express 5; Python 3.13 + FastAPI + ONNX Runtime 1.31; PostgreSQL 18.
+
 ```
 Browser (React, Vite build served by nginx)
    │  REST + JWT (Authorization: Bearer)
@@ -16,7 +18,7 @@ PostgreSQL  (users, inspections, defects, alerts)
 |---|---|---|
 | frontend | Login, dashboard charts, live video sampling, upload, history | `frontend/src/api.js`, `frontend/src/pages/*.jsx`, `frontend/src/components/BBoxCanvas.jsx`, `frontend/src/draw.js` |
 | gateway | Auth, rate limits, image validation, persistence, alert rule, stats | `gateway/src/app.js`, `routes/{auth,inspect,stats}.js`, `services/{inference,alerts}.js` |
-| inference | Decode image, letterbox to 640, run ONNX, NMS, scale boxes back | `inference/app/main.py`, `inference/app/detector.py` |
+| inference | Decode image, letterbox to 640, run ONNX, NMS (only for raw-head models; YOLO26 end2end skips it), scale boxes back | `inference/app/main.py`, `inference/app/detector.py` |
 | ml | Data prep, training, ONNX export, parity check, benchmark, demo video | `ml/*.py` (offline, not deployed) |
 
 ## Inspect request flow
@@ -75,7 +77,7 @@ Detector choice at startup: `MOCK_MODE=true` → `MockDetector`; else `MODEL_PAT
 | gateway | `UPLOAD_DIR` | ./uploads | ephemeral on Cloud Run |
 | gateway | `ALERT_WINDOW` / `ALERT_THRESHOLD` / `ALERT_COOLDOWN_SEC` | 20 / 0.5 / 60 | |
 | inference | `MODEL_PATH` / `LABELS_PATH` | models/best.onnx / models/labels.json | |
-| inference | `MODEL_VERSION` | yolov8n-neu-det-v1 | |
+| inference | `MODEL_VERSION` | yolo26n-neu-det-v1 | |
 | inference | `MOCK_MODE` | false | wins over the model file |
 | inference | `PORT` | 8000 | Docker only |
 | frontend | `VITE_API_URL` | http://localhost:4000 | build-time |
