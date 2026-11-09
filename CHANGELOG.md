@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Everything below is in PR #1 (`chore/claude-code-setup` → `main`), CI green, not merged yet.
+
 ### Stack upgrade
 - Frontend: React 18 → 19.3, Vite 5 → 8.3 (`@vitejs/plugin-react` 6), React Router 6 → 7.18 (imports from `react-router`; `react-router-dom` removed), Recharts 2 → 3.10.
 - Frontend pages are lazy-loaded, so Recharts only loads with the Dashboard (initial JS 264 kB instead of 675 kB).

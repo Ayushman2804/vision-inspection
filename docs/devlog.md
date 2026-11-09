@@ -23,7 +23,8 @@ Template:
 
 **Did**
 - Researched a Claude Code workflow video ("Plan, Setup, Build") and applied its setup checklist here: `CLAUDE.md`, `docs/architecture.md`, `docs/project-status.md`, `CHANGELOG.md`, root `.env.example`.
-- Branch `chore/claude-code-setup`: committed the Node 24 runtime bump and the docs (2 commits, not pushed).
+- Branch `chore/claude-code-setup`: 6 commits (Node 24 runtime, project docs, stack upgrade, seed, YOLO26n, docs), pushed as PR #1 against `main` (https://github.com/Ayushman2804/vision-inspection/pull/1). CI green on all 4 jobs; Auto-fix on.
+- Added this devlog.
 - Ran the full stack locally and walked through it as a user: register, Live video with the sample clip, Dashboard, History. All worked with the real YOLOv8n model.
 - Upgraded the stack: React 19, Vite 8, React Router 7, Recharts 3, Express 5, Python 3.13, FastAPI 0.162, ONNX Runtime 1.31, PostgreSQL 18, nginx 1.30.6. Tests: inference 8/8, gateway 7/7; frontend builds; checked in the browser.
 - Frontend pages lazy-loaded (initial JS 675 kB → 264 kB); restored legend order after Recharts 3 changed it.
@@ -41,13 +42,13 @@ Template:
 - The "~2× faster on CPU" claim from the upgrade table wasn't reproduced: ~13% here, because we still run NMS like YOLOv8n.
 
 **Open / blocked**
+- PR #1 waiting on review/merge.
 - Live video sampled ~1 fps instead of 3 fps in the browser-pane test; not investigated.
-- Everything since the two morning commits (stack upgrade, seed, monitor, model swap, docs) is not committed yet.
 - README screenshots still show YOLOv8n.
-- A first validation run hung in Windows dataloader workers; rerunning with `workers=0` fixed it.
+- A first validation run hung in Windows dataloader workers; rerunning with `workers=0` fixed it (note for future `model.val` calls on Windows).
 
 **Next**
-- Commit the upgrade and model swap, push the branch, open a PR.
+- Merge PR #1.
 - Check the Live frame rate in a normal browser, retake screenshots, then plan deployment.
 
 ## 2026-11-08
