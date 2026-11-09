@@ -1,39 +1,39 @@
 /**
- * Fill the database with mock inspection history for demos and UI work.
+ * Seed demo history with REAL model output: NEU-DET validation images are posted through
+ * POST /api/inspect against the running stack, so every detection comes from the deployed model.
+ * Afterwards the rows are backdated across the last N days (uneven volume per day) so the
+ * Dashboard timeline has real shape.
  *
- *   npm run seed                      # 7 days, ~40 inspections/day, for the demo user
- *   npm run seed -- --days 30 --per-day 80
- *   npm run seed -- --reset           # delete this user's seeded rows first
+ * Runs inside the gateway container (it needs the API and the database):
  *
- * Creates (or reuses) the user SEED_EMAIL / SEED_PASSWORD (defaults below, also in .env.example).
- * Seeded rows use model_version "seed-demo", so they are easy to spot and delete:
- *   DELETE FROM inspections WHERE model_version = 'seed-demo';
- * Never run against a production database.
+ *   docker compose cp ml/data/neu-det/images/val gateway:/tmp/neu-val
+ *   docker compose exec gateway npm run seed -- --reset
+ *
+ * Options: --images DIR (default /tmp/neu-val), --count N (default 120), --days N (default 7),
+ *          --reset (delete this user's seeded rows, alerts and stored images first),
+ *          --api URL (default http://localhost:$PORT).
+ * Demo user: SEED_EMAIL / SEED_PASSWORD (see gateway/.env.example). Created if missing.
+ * Seeded inspections are tagged model_version = 'seed-demo:<real model version>' and seeded alerts
+ * carry details.seed = true, so they're removable:
+ *   DELETE FROM inspections WHERE model_version LIKE 'seed-demo%';
+ * Refuses to run with NODE_ENV=production.
  */
-import bcrypt from 'bcryptjs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { config } from '../src/config.js';
-import { migrate, pool } from '../src/db.js';
+import { pool } from '../src/db.js';
 
-const SEED_VERSION = 'seed-demo';
+const SEED_PREFIX = 'seed-demo';
 const EMAIL = (process.env.SEED_EMAIL || 'demo@example.test').toLowerCase();
 const PASSWORD = process.env.SEED_PASSWORD || 'demo-password-123';
-
-// Rough NEU-DET-like mix: weights for how often each class appears, and typical confidence.
-const CLASSES = [
-  { name: 'scratches', weight: 0.24, conf: 0.72 },
-  { name: 'inclusion', weight: 0.2, conf: 0.68 },
-  { name: 'patches', weight: 0.2, conf: 0.8 },
-  { name: 'pitted_surface', weight: 0.14, conf: 0.66 },
-  { name: 'crazing', weight: 0.12, conf: 0.42 },
-  { name: 'rolled-in_scale', weight: 0.1, conf: 0.45 },
-];
+const UPLOAD_SHARE = 0.2; // ~1 upload : 4 video frames, like real use
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);
-  return i > -1 ? Number(process.argv[i + 1]) : fallback;
+  return i > -1 ? process.argv[i + 1] : fallback;
 }
 
-// Small deterministic PRNG so repeated seeds give the same-looking data.
+// Small deterministic PRNG so repeated seeds pick the same images and timeline shape.
 function mulberry32(seed) {
   let a = seed;
   return () => {
@@ -44,102 +44,133 @@ function mulberry32(seed) {
   };
 }
 
-function pickClass(rand) {
-  let r = rand();
-  for (const c of CLASSES) {
-    if ((r -= c.weight) <= 0) return c;
-  }
-  return CLASSES[0];
+async function api(base, method, route, { token, json, form } = {}) {
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let body;
+  if (json) {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(json);
+  } else if (form) body = form;
+  const res = await fetch(`${base}${route}`, { method, headers, body });
+  const data = await res.json().catch(() => ({}));
+  return { status: res.status, data };
 }
 
-function mockDefect(rand) {
-  const c = pickClass(rand);
-  const w = 200;
-  const h = 200; // NEU-DET images are 200x200
-  const bw = 20 + rand() * 120;
-  const bh = 20 + rand() * 120;
-  const x1 = rand() * (w - bw);
-  const y1 = rand() * (h - bh);
-  const confidence = Math.min(0.97, Math.max(0.25, c.conf + (rand() - 0.5) * 0.3));
-  return {
-    class_name: c.name,
-    confidence: Number(confidence.toFixed(4)),
-    bbox: [x1, y1, x1 + bw, y1 + bh].map((v) => Number(v.toFixed(1))),
-    area_pct: Number(((bw * bh) / (w * h) * 100).toFixed(2)),
-  };
+async function getToken(base) {
+  let r = await api(base, 'POST', '/api/auth/login', { json: { email: EMAIL, password: PASSWORD } });
+  if (r.status === 200) return r.data.token;
+  r = await api(base, 'POST', '/api/auth/register', { json: { email: EMAIL, password: PASSWORD } });
+  if (r.status === 201) return r.data.token;
+  throw new Error(`Could not sign in or register ${EMAIL}: ${r.status} ${r.data?.error || ''}`);
+}
+
+/** Pick `count` images, round-robin across the defect classes (filename prefix), shuffled within each class. */
+async function pickImages(dir, count, rand) {
+  const files = (await fs.readdir(dir)).filter((f) => /\.(jpe?g|png|bmp)$/i.test(f)).sort();
+  if (!files.length) throw new Error(`No images in ${dir}`);
+  const byClass = new Map();
+  for (const f of files) {
+    const cls = f.replace(/_\d+\.\w+$/, '');
+    if (!byClass.has(cls)) byClass.set(cls, []);
+    byClass.get(cls).push(f);
+  }
+  for (const list of byClass.values()) list.sort(() => rand() - 0.5);
+  const classes = [...byClass.keys()];
+  const picked = [];
+  for (let i = 0; picked.length < count; i++) {
+    const list = byClass.get(classes[i % classes.length]);
+    picked.push(list[Math.floor(i / classes.length) % list.length]);
+  }
+  return picked.sort(() => rand() - 0.5);
+}
+
+/** Timestamps over the last `days` days: uneven daily volume, within a 14 h window from 06:00 server
+ *  time (UTC in the container), today capped at now. */
+function backdatedTimes(n, days, rand) {
+  const now = new Date();
+  const weights = Array.from({ length: days }, () => 0.4 + rand() * 1.6);
+  weights[days - 1] *= 0.6; // today is only partly over
+  const total = weights.reduce((a, b) => a + b, 0);
+  const perDay = weights.map((w) => Math.round((w / total) * n));
+  perDay[Math.max(0, days - 2)] += n - perDay.reduce((a, b) => a + b, 0); // rounding remainder goes to yesterday
+  const times = [];
+  perDay.forEach((count, d) => {
+    const day = new Date(now);
+    day.setDate(now.getDate() - (days - 1 - d));
+    for (let k = 0; k < count; k++) {
+      const t = new Date(day);
+      t.setHours(6, 0, 0, 0);
+      t.setTime(t.getTime() + rand() * 14 * 3_600_000);
+      times.push(t > now ? new Date(now.getTime() - rand() * 3_600_000) : t);
+    }
+  });
+  return times.sort((a, b) => a - b);
+}
+
+async function reset(userId) {
+  const { rows } = await pool.query(
+    `DELETE FROM inspections WHERE user_id = $1 AND model_version LIKE $2 RETURNING image_path`,
+    [userId, `${SEED_PREFIX}%`],
+  );
+  let files = 0;
+  for (const { image_path: p } of rows) {
+    if (!p) continue;
+    await fs.rm(path.join(config.uploadDir, path.basename(p)), { force: true });
+    files += 1;
+  }
+  const alerts = await pool.query(`DELETE FROM alerts WHERE user_id = $1 AND details->>'seed' = 'true'`, [userId]);
+  console.log(`Reset: removed ${rows.length} seeded inspections, ${files} stored images, ${alerts.rowCount} alerts.`);
 }
 
 async function main() {
   if (process.env.NODE_ENV === 'production') throw new Error('Refusing to seed with NODE_ENV=production');
-  const days = arg('days', 7);
-  const perDay = arg('per-day', 40);
-  const reset = process.argv.includes('--reset');
+  const dir = arg('images', '/tmp/neu-val');
+  const count = Number(arg('count', 120));
+  const days = Number(arg('days', 7));
+  const base = (arg('api', `http://localhost:${config.port}`) || '').replace(/\/$/, '');
   const rand = mulberry32(42);
 
-  await migrate();
-  const hash = await bcrypt.hash(PASSWORD, 10);
-  const { rows: users } = await pool.query(
-    `INSERT INTO users (email, password_hash) VALUES ($1, $2)
-     ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
-     RETURNING id`,
-    [EMAIL, hash],
-  );
+  const token = await getToken(base);
+  const { rows: users } = await pool.query('SELECT id FROM users WHERE email = $1', [EMAIL]);
   const userId = users[0].id;
+  if (process.argv.includes('--reset')) await reset(userId);
 
-  if (reset) {
-    await pool.query(`DELETE FROM inspections WHERE user_id = $1 AND model_version = $2`, [userId, SEED_VERSION]);
-    await pool.query(`DELETE FROM alerts WHERE user_id = $1 AND details->>'seed' = 'true'`, [userId]);
+  const images = await pickImages(dir, count, rand);
+  const done = []; // { id, alertId }
+  let defects = 0;
+  let version = null;
+  for (const [i, file] of images.entries()) {
+    const buf = await fs.readFile(path.join(dir, file));
+    const type = file.endsWith('.png') ? 'image/png' : file.endsWith('.bmp') ? 'image/bmp' : 'image/jpeg';
+    const form = new FormData();
+    form.append('conf', '0.25');
+    form.append('source', rand() < UPLOAD_SHARE ? 'upload' : 'video');
+    form.append('image', new Blob([buf], { type }), file);
+    const r = await api(base, 'POST', '/api/inspect', { token, form });
+    if (r.status !== 201) throw new Error(`Inspect failed for ${file}: ${r.status} ${r.data?.error || ''}`);
+    done.push({ id: r.data.inspection.id, alertId: r.data.alert?.id ?? null });
+    defects += r.data.detections.length;
+    version = r.data.inspection.model_version;
+    if ((i + 1) % 25 === 0) console.log(`  ${i + 1}/${images.length} inspected`);
   }
 
+  // Backdate in id order so "newest first" by id and by time agree; alerts follow their inspection.
+  const times = backdatedTimes(done.length, days, rand);
   const client = await pool.connect();
-  let inspections = 0;
-  let defects = 0;
-  let alerts = 0;
   try {
     await client.query('BEGIN');
-    const now = Date.now();
-    for (let d = days - 1; d >= 0; d--) {
-      // One "bad shift" per run: day 2 has a much higher defect rate, which also triggers alerts.
-      const failRate = d === 2 ? 0.6 : 0.18 + rand() * 0.12;
-      const count = Math.round(perDay * (0.7 + rand() * 0.6));
-      const recent = [];
-      let sinceAlert = config.alertWindow;
-      for (let k = 0; k < count; k++) {
-        const ts = new Date(now - d * 86_400_000 - (1 - k / count) * 10 * 3_600_000); // spread over a 10 h shift
-        const fail = rand() < failRate;
-        const dets = fail ? Array.from({ length: 1 + Math.floor(rand() * 3) }, () => mockDefect(rand)) : [];
-        const source = rand() < 0.8 ? 'video' : 'upload';
-        const latency = Number((28 + rand() * 40).toFixed(2));
-        const { rows } = await client.query(
-          `INSERT INTO inspections (user_id, source, image_path, status, defect_count, latency_ms, model_version, created_at)
-           VALUES ($1, $2, NULL, $3, $4, $5, $6, $7) RETURNING id`,
-          [userId, source, fail ? 'fail' : 'pass', dets.length, latency, SEED_VERSION, ts],
+    for (const [k, { id, alertId }] of done.entries()) {
+      await client.query(`UPDATE inspections SET created_at = $2, model_version = $3 WHERE id = $1`, [
+        id,
+        times[k],
+        `${SEED_PREFIX}:${version}`,
+      ]);
+      if (alertId) {
+        await client.query(
+          `UPDATE alerts SET triggered_at = $2, details = details || '{"seed": true}'::jsonb WHERE id = $1`,
+          [alertId, times[k]],
         );
-        for (const det of dets) {
-          await client.query(
-            `INSERT INTO defects (inspection_id, class_name, confidence, bbox, area_pct) VALUES ($1, $2, $3, $4, $5)`,
-            [rows[0].id, det.class_name, det.confidence, JSON.stringify(det.bbox), det.area_pct],
-          );
-        }
-        inspections += 1;
-        defects += dets.length;
-
-        // Same rule as services/alerts.js: fail share of the last ALERT_WINDOW inspections, with a cooldown
-        // of ALERT_WINDOW inspections between seeded alerts.
-        recent.push(fail);
-        if (recent.length > config.alertWindow) recent.shift();
-        const rate = recent.filter(Boolean).length / recent.length;
-        sinceAlert += 1;
-        if (recent.length === config.alertWindow && rate >= config.alertThreshold && sinceAlert >= config.alertWindow) {
-          sinceAlert = 0;
-          const details = { fail_rate: Number(rate.toFixed(3)), window: config.alertWindow, threshold: config.alertThreshold, seed: true };
-          await client.query(`INSERT INTO alerts (user_id, rule, details, triggered_at) VALUES ($1, 'high_defect_rate', $2, $3)`, [
-            userId,
-            details,
-            ts,
-          ]);
-          alerts += 1;
-        }
       }
     }
     await client.query('COMMIT');
@@ -150,8 +181,19 @@ async function main() {
     client.release();
   }
 
-  console.log(`Seeded ${inspections} inspections, ${defects} defects, ${alerts} alerts over ${days} days for ${EMAIL}.`);
-  console.log(`Sign in with SEED_EMAIL / SEED_PASSWORD (see .env.example). Remove with --reset or model_version='${SEED_VERSION}'.`);
+  const { rows: summary } = await pool.query(
+    `SELECT count(*)::int AS n,
+            count(*) FILTER (WHERE status = 'fail')::int AS fails,
+            count(*) FILTER (WHERE source = 'upload')::int AS uploads
+     FROM inspections WHERE user_id = $1 AND model_version LIKE $2`,
+    [userId, `${SEED_PREFIX}%`],
+  );
+  const s = summary[0];
+  const alerts = done.filter((d) => d.alertId).length;
+  console.log(
+    `Seeded ${done.length} real inspections (${s.fails} fail, ${s.n - s.fails} pass; ${s.uploads} uploads) with ${defects} detections ` +
+      `from ${version}, ${alerts} alert(s), spread over ${days} days for ${EMAIL}.`,
+  );
 }
 
 main()

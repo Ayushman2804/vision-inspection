@@ -2,7 +2,12 @@
 
 ## Unreleased
 
-Everything below is in PR #1 (`chore/claude-code-setup` → `main`), CI green, not merged yet.
+### Demo data from the real model
+- `npm run seed` now posts NEU-DET validation images through `POST /api/inspect` (default 120, ~1 upload : 4 video), so every detection is real YOLO26n output; it then backdates the rows over 7 days with uneven daily volume. Tag is now `seed-demo:<model version>`; `--reset` also deletes seeded upload files.
+- Dashboard and History screenshots retaken on the seeded data; README says the history is seeded.
+- Roadmap: `/uploads/*` access control folded into the object-storage item (signed URLs).
+
+## 2026-11-09: PR #1 merged (56cbd64)
 
 ### Stack upgrade
 - Frontend: React 18 → 19.3, Vite 5 → 8.3 (`@vitejs/plugin-react` 6), React Router 6 → 7.18 (imports from `react-router`; `react-router-dom` removed), Recharts 2 → 3.10.
@@ -25,7 +30,7 @@ Everything below is in PR #1 (`chore/claude-code-setup` → `main`), CI green, n
 - README results, model choice and confidence-threshold sections updated; artifacts in `docs/results/yolo26n/`.
 
 ### Demo data
-- `npm run seed` (gateway): mock inspection history for a demo user (default ~240 inspections over 7 days, NEU-DET-like class mix, one high-defect shift with alerts). `--days`, `--per-day`, `--reset`. Rows tagged `model_version = 'seed-demo'`; refuses `NODE_ENV=production`.
+- `npm run seed` (gateway): first version generated synthetic inspection rows; replaced by the real-model seed above.
 
 ### Project setup
 - Add `CLAUDE.md`, `docs/architecture.md`, `docs/project-status.md`, this changelog, and a root `.env.example` for `docker compose` overrides.

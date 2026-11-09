@@ -21,10 +21,10 @@ React (Vite)  ──REST──►  Node/Express gateway  ──HTTP──►  Fa
 
 ## Screenshots
 
-All captured against the shipped YOLO26n model on NEU-DET validation images, with a fresh account holding only real inspections (no mock or seeded data).
+All captured against the shipped YOLO26n model on NEU-DET validation images. The Dashboard and History history is seeded: real YOLO26n detections on NEU-DET validation images, posted through the API, with timestamps spread over a week so the time-series views are meaningful. NEU-DET has no defect-free images, so every seeded inspection fails and the defect rate reads 100%.
 
 ![Dashboard](docs/screenshots/dashboard.png)
-*Dashboard (last 24 hours): KPIs, defects by class, throughput, and the defect-rate alert firing. All inspections fell in one hour, so the timeline is a single point.*
+*Dashboard (last 7 days): KPIs, defects by class, daily throughput, and the defect-rate alert. At a 100% defect rate the Defective line sits exactly on top of Inspected.*
 
 ![Live video inspection](docs/screenshots/live.png)
 *Live video: frames sampled in the browser at 3 fps, with detections drawn on the overlay (~42 ms average model latency on CPU in Docker).*
@@ -32,7 +32,7 @@ All captured against the shipped YOLO26n model on NEU-DET validation images, wit
 | Upload | History |
 |---|---|
 | ![Upload result](docs/screenshots/upload.png) | ![Inspection history](docs/screenshots/history.png) |
-| *Single-image inspection with verdict and detections table* | *Filterable history with per-defect chips* |
+| *Single-image inspection with verdict and detections table* | *Filterable history with per-defect chips; uploads keep a thumbnail, video frames don't* |
 
 **Live video on the web:** the browser plays a video file, samples ~3 frames/sec onto a canvas, sends each to the gateway, and draws the returned boxes on an overlay. Nothing runs on the user's machine except the browser, so it deploys as-is.
 
@@ -62,13 +62,14 @@ docker compose up --build
 
 Register an account on the login screen, then try Upload and Live video ("Load sample" plays a clip built from NEU-DET validation images).
 
-**Demo data:** to see the Dashboard and History with a week of history, seed mock inspections (about 240 over 7 days, a mix of passes and defects, one high-defect shift with an alert):
+**Demo data:** to see the Dashboard and History with a week of history, seed it with real model output. The script posts NEU-DET validation images (default 120) through `POST /api/inspect`, about 1 upload to 4 video frames, then spreads the timestamps over the last 7 days with uneven daily volume. Needs the dataset from Step 1 in `ml/data/neu-det`:
 
 ```bash
-docker compose exec gateway npm run seed            # add --reset to replace earlier seeded rows
+docker compose cp ml/data/neu-det/images/val gateway:/tmp/neu-val
+docker compose exec gateway npm run seed -- --reset     # --count N, --days N; --reset replaces earlier seeded rows
 ```
 
-Then sign in as `SEED_EMAIL` / `SEED_PASSWORD` from `gateway/.env.example`. Seeded rows are tagged `model_version = 'seed-demo'`; the script refuses to run with `NODE_ENV=production`.
+Then sign in as `SEED_EMAIL` / `SEED_PASSWORD` from `gateway/.env.example`. Seeded rows are tagged `model_version = 'seed-demo:<model version>'` (remove with `--reset` or `DELETE FROM inspections WHERE model_version LIKE 'seed-demo%'`); the script refuses to run with `NODE_ENV=production`.
 
 For UI work without the model, `MOCK_MODE=true docker compose up --build` returns random boxes instead. `MOCK_MODE` takes precedence over the model file. To keep overrides (`JWT_SECRET`, `MOCK_MODE`, `MODEL_VERSION`) between runs, copy `.env.example` to `.env`; Compose reads it automatically.
 
@@ -255,6 +256,7 @@ It creates fresh `e2e-*@example.test` users on each run. Not in CI yet (needs a 
 - WebSocket push for alerts and a true stream endpoint
 - Email or Slack alert delivery
 - Anomaly-detection mode (PatchCore via `anomalib`) for unseen defect types
-- Object storage for uploads, model registry and versioned rollouts, Prometheus metrics
+- Object storage for uploads (GCS or R2) served through short-lived signed URLs. This also fixes access control: today `/uploads/*` is served without authentication, and the only protection is the random UUID filename.
+- Model registry and versioned rollouts, Prometheus metrics
 - Model comparison page (YOLOv8n vs YOLOv8s vs YOLO26n)
 - Per-class confidence thresholds instead of one global value: low for `crazing` (YOLO26n's F1 peaks at 0.14), around 0.5 for `inclusion`, `patches` and `scratches`

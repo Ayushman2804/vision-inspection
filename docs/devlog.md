@@ -39,13 +39,16 @@ Template:
 - Mock data stays clearly tagged and is never shown as real model results.
 - **YOLO26n ships.** Training finished (100 epochs, ~50 min): mAP@0.5 0.739 vs 0.717, mAP@0.5:0.95 0.404 vs 0.380, better AP@0.5 on all classes, CPU p50 31 vs 36 ms. Clears the swap rule.
 - Deploy the raw head + NMS, not the NMS-free `--end2end` export: the end2end branch disagreed with PyTorch on 37/50 images, while the raw export matched 50/50 (max 0.06 px). The checkpoint validates through the raw head, so that's what the 0.739 describes.
+- Seeded demo history stays real model output (no fabricated rows); timestamps are the only synthetic part, and the README says so. NEU-DET has no clean images, so the seeded defect rate is 100%.
+- `/uploads/*` access control goes into the object-storage roadmap item (signed URLs) rather than its own entry.
 - The "~2× faster on CPU" claim from the upgrade table wasn't reproduced: ~13% here, because we still run NMS like YOLOv8n.
 
 - Pre-merge checks for PR #1: clicked through all four pages after the frontend upgrade (charts render, no console errors); wrote `scripts/e2e_check.js` (27/27 against the running stack, also with ALERT_WINDOW=3); measured the Live page at 3.0 fps when focused; retook all five screenshots with YOLO26n and real data only.
+- Merged PR #1 (56cbd64) after the pre-merge checks.
+- Reworked `npm run seed` to use real model output: 120 NEU-DET val images posted through the API (26 uploads, 94 video, 307 YOLO26n detections), then backdated over 7 days with uneven daily volume (9-30 per day). Retook the Dashboard and History screenshots on it.
 - Found the "1 fps" cause: in a hidden tab the browser throttles `canvas.toBlob()` to ~1 s per call (the 333 ms timer itself still fires on time). Not an app bug; README now says to keep the Live tab in the foreground.
 
 **Open / blocked**
-- PR #1 ready to merge once CI is green on the latest push.
 - `/uploads/*` is served without auth (UUID filenames only); worth revisiting with object storage.
 - A first validation run hung in Windows dataloader workers; rerunning with `workers=0` fixed it (note for future `model.val` calls on Windows).
 

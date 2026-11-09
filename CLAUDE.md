@@ -27,7 +27,7 @@ MOCK_MODE=true docker compose up --build           # random boxes, no model need
 cd inference && pytest -q                          # letterbox, NMS, postprocess, API (mock mode)
 cd gateway && npm test                             # node --test, alert rule
 cd frontend && npm run build                       # only frontend check; there are no frontend tests
-docker compose exec gateway npm run seed -- --reset  # mock week of history for the demo user (gateway/.env.example)
+docker compose cp ml/data/neu-det/images/val gateway:/tmp/neu-val && docker compose exec gateway npm run seed -- --reset  # real-model demo week (gateway/.env.example)
 ```
 
 CI (`.github/workflows/ci.yml`) runs those three plus `docker compose build`. Run the relevant one before saying a change works.
@@ -44,7 +44,7 @@ CI (`.github/workflows/ci.yml`) runs those three plus `docker compose build`. Ru
 - `app/detector.py` decodes both ONNX formats: YOLO26 end2end `(1, 300, 6)` (no NMS needed) and the YOLOv8-style raw head `(1, 4+nc, 8400)` (NMS in NumPy). Keep both working and tested.
 - Inference response shape (`detections[].class_name/confidence/bbox/area_pct`, `latency_ms`, `model_version`, `image`) is consumed by the gateway and frontend. Change all three together.
 - Default confidence is 0.25 in three places (frontend sliders, gateway fallback, inference default). See README "Confidence threshold" before changing it.
-- Mock data from `gateway/scripts/seed-demo.js` is tagged `model_version = 'seed-demo'`. Never present it as real model results, and don't seed production.
+- Seed data from `gateway/scripts/seed-demo.js` is real model output on NEU-DET val images with backdated timestamps, tagged `model_version = 'seed-demo:<version>'`. Say it's seeded wherever it's shown (README screenshots), and don't seed production.
 - Model numbers in README come from `docs/results/*/metrics_summary.json`. Don't edit them by hand.
 
 ## After finishing a feature
