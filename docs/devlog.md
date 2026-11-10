@@ -27,16 +27,24 @@ Template:
 - Fixed horizontal overflow at phone width; History is cards below 640 px; KPI tiles in 2 columns; horizontal bar chart.
 - `/api/stats` timeline zero-filled with `generate_series`, plus a Postgres-backed gateway test; CI gateway job gets a Postgres service.
 - Checked in the browser against an in-memory mock API (Docker was off and training was using the RAM, 1.9 GB free): no overflow on any page at 360/390/414 px; 0 skeletons during three 10 s polls; skeleton layout matches real content (Dashboard exact, History rows within 3 px); an Upload in one tab showed up in History open in another tab; 27 signals in 9 s gave 4 History fetches; Live paused after exactly 3 failed calls and Resume restarted it; 401 signed out with no Retry.
+- After training finished (run `neu-gc10-26n` stopped at epoch 78/100), started the stack with the real model: gateway tests 9/9 against Postgres with `REQUIRE_DB=1` (both zero-fill tests fail on the old `date_trunc` query, pass on the new one); `scripts/e2e_check.js` 27/27; Dashboard on the seeded data at 390 px, no overflow, today's empty bucket plotted as 0.
+- Checked 11 user-supplied images (`images_train/`): unlabeled stock metal-texture photos, three with stock-site watermarks. The shipped model flagged diamond-plate and galvanized textures as defects and missed fine scratches on bright metal (domain shift). Deleted them at the user's request.
+- Downloaded GC10-DET from Hugging Face (`lzhzj/gc10-det`, 2,294 images, CC BY 4.0 per the Roboflow mirror) into `ml/data/` and built a 16-class NEU-DET + GC10-DET dataset (`ml/prepare_combined.py`).
+- Trained a combined YOLO26n (early stop at epoch 78). NEU-DET: mAP@0.5 0.747 vs 0.739 shipped, mAP@0.5:0.95 0.395 vs 0.404; GC10-DET test 0.689; parity 50/50; CPU p50 32.6 vs 30.3 ms.
 
 **Decided**
 - The new-inspection signal is also broadcast to other tabs (BroadcastChannel). Only one page is mounted per tab, so an in-tab context alone would almost never reach an "already open" History page.
 - History on phones: cards rather than a horizontally scrolling table.
 - Recharts animations off on the Dashboard so a poll with new numbers doesn't replay the draw-in.
+- Keep the shipped NEU-only YOLO26n: the NEU-DET difference is within noise, scratches got worse, and the app doesn't need GC10's classes yet.
+- Don't launch training through WMI (`Win32_Process.Create`): three runs died silently with the whole process tree after 5–40 minutes, likely WMI's 512 MB provider-host memory quota. Run long jobs in a terminal tab instead, with `train.py --resume` for interruptions.
 
-- After training finished (run `neu-gc10-26n` stopped at epoch 78/100), started the stack with the real model: gateway tests 9/9 against Postgres with `REQUIRE_DB=1` (both zero-fill tests fail on the old `date_trunc` query, pass on the new one); `scripts/e2e_check.js` 27/27; Dashboard on the seeded data at 390 px, no overflow, today's empty bucket plotted as 0.
+**Open / blocked**
+- GC10's sheet inclusion (0.30) and rolled pit (0.24) are weak; crease and waist fold have 1–2 test boxes, so their scores are meaningless.
 
 **Next**
-- Open the PR for `feat/frontend-resilience`.
+- PR #2 (`feat/frontend-resilience`) open; UI redesign stacked on it as PR #4.
+- Deployment, unless GC10 classes become a requirement.
 
 ## 2026-11-09
 

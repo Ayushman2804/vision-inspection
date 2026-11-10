@@ -1,0 +1,24 @@
+{
+  "weights": "neu-gc10-26n best.pt",
+  "data": "data/neu-gc10/val_neu.yaml",
+  "mAP50": 0.7466692831990391,
+  "mAP50-95": 0.3952060765317977,
+  "P": 0.6736110259082775,
+  "R": 0.6975579749544164,
+  "AP50": {
+    "crazing": 0.565,
+    "inclusion": 0.838,
+    "patches": 0.922,
+    "pitted_surface": 0.787,
+    "rolled-in_scale": 0.575,
+    "scratches": 0.792
+  },
+  "AP50-95": {
+    "crazing": 0.237,
+    "inclusion": 0.473,
+    "patches": 0.576,
+    "pitted_surface": 0.417,
+    "rolled-in_scale": 0.239,
+    "scratches": 0.429
+  }
+}

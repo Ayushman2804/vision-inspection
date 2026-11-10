@@ -21,30 +21,37 @@ def main():
     ap.add_argument("--name", default="neu-det-v1")
     ap.add_argument("--workers", type=int, default=4, help="dataloader workers (Windows struggles with 8)")
     ap.add_argument("--cache", action="store_true", help="cache images in RAM (NEU-DET is small)")
+    ap.add_argument("--resume", metavar="LAST_PT",
+                    help="resume an interrupted run from its weights/last.pt (keeps that run's settings)")
     args = ap.parse_args()
 
-    model = YOLO(args.model)
-    model.train(
-        data=args.data,
-        epochs=args.epochs,
-        imgsz=args.imgsz,
-        batch=args.batch,
-        device=args.device,
-        workers=args.workers,
-        cache=args.cache,
-        # Absolute path: newer Ultralytics nests a relative project under runs/detect/.
-        project=str(Path("runs").resolve()),
-        name=args.name,
-        patience=30,
-        plots=True,
-        seed=42,
-    )
+    if args.resume:
+        model = YOLO(args.resume)
+        model.train(resume=True)
+    else:
+        model = YOLO(args.model)
+        model.train(
+            data=args.data,
+            epochs=args.epochs,
+            imgsz=args.imgsz,
+            batch=args.batch,
+            device=args.device,
+            workers=args.workers,
+            cache=args.cache,
+            # Absolute path: newer Ultralytics nests a relative project under runs/detect/.
+            project=str(Path("runs").resolve()),
+            name=args.name,
+            patience=30,
+            plots=True,
+            seed=42,
+        )
     save_dir = Path(model.trainer.save_dir)  # may be <name>2, <name>3... if the name already exists
 
     metrics = model.val(data=args.data, imgsz=args.imgsz, device=args.device,
                         project=str(save_dir), name="val", exist_ok=True)
     summary = {
-        "model": args.model,
+        # On --resume, args.model is only the default, so record the checkpoint the run resumed from.
+        "model": f"resumed from {args.resume}" if args.resume else args.model,
         "mAP50": float(metrics.box.map50),
         "mAP50-95": float(metrics.box.map),
         "precision": float(metrics.box.mp),

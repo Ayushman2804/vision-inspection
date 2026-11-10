@@ -14,6 +14,7 @@ Last updated: 2026-11-10
 | 6 | Evaluate YOLO26n against YOLOv8n and ship it if it holds up | Done: YOLO26n (mAP@0.5 0.739, CPU p50 31 vs 36 ms); in PR #1 |
 | 7 | Merge PR #1 into `main` | Done (56cbd64) |
 | 8 | Deploy (Neon + Cloud Run + Vercel) and measure real Cloud Run latency | Not started |
+| 8a | Experiment: NEU-DET + GC10-DET combined 16-class model | Done, not shipped (NEU-DET tie: 0.747 vs 0.739 mAP@0.5; GC10 0.689) |
 | 9 | Human review queue and retraining export | Not started |
 
 ## Where things stand
@@ -22,7 +23,9 @@ Last updated: 2026-11-10
 - Local checks: inference 8/8 on Python 3.13, gateway 7/7 on Express 5, frontend builds on Vite 8, Docker stack running with YOLO26n (~31–34 ms per frame in the container).
 - YOLO26n runs as the raw head + NMS (parity 50/50, max 0.06 px). The NMS-free `--end2end` export is not used: it disagrees on 37/50 images and isn't validated. YOLOv8n backup: `ml/runs/backup-yolov8n-models/` (local, gitignored).
 - Local Postgres uses the new `pgdata18` volume; demo history comes from `npm run seed`: real YOLO26n detections on NEU-DET val images, backdated over 7 days (tagged `seed-demo:*`), not production line data.
-- Training run, ONNX candidates and logs live in `ml/runs/` (gitignored); results worth keeping are copied to `docs/results/yolo26n/`.
+- Training run, ONNX candidates and logs live in `ml/runs/` (gitignored); results worth keeping are copied to `docs/results/<run>/` (yolo26n shipped; neu-gc10-26n experiment, not shipped).
+- GC10-DET is downloaded to `ml/data/gc10-det-raw` and the combined dataset to `ml/data/neu-gc10` (gitignored); its candidate ONNX is in `ml/runs/neu-gc10-26n/onnx/`.
+- Long training runs: use a terminal tab and `ml/train.py --resume`; WMI-launched runs were killed silently.
 
 ## Pre-merge checks (PR #1, all passed)
 
