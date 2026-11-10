@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { drawDetections } from '../draw.js';
+import { IconGauge, IconScan, IconVideo } from '../components/Icons.jsx';
 import { useNotifyInspection } from '../inspectionSignal.jsx';
 
 const FPS = 3; // frames sampled per second and sent for inference
@@ -110,9 +111,12 @@ export default function Live() {
   const rate = stats.frames ? ((stats.fails / stats.frames) * 100).toFixed(0) : 0;
 
   return (
-    <div className="grid two">
+    <div className="grid wide-left">
       <section className="card">
-        <h2>Live inspection (video)</h2>
+        <h2 className="title">
+          <IconVideo size={22} />
+          Live inspection (video)
+        </h2>
         <div className="row">
           <label className="btn">
             Choose video
@@ -180,7 +184,10 @@ export default function Live() {
       </section>
 
       <section className="card">
-        <h2>Live stats</h2>
+        <h2 className="title">
+          <IconGauge size={22} />
+          Live stats
+        </h2>
         {alert && (
           <div className="alert-banner">
             High defect rate: {(alert.details.fail_rate * 100).toFixed(0)}% of the last {alert.details.window} inspections failed
@@ -200,7 +207,10 @@ export default function Live() {
             <span className="muted">avg model latency</span>
           </div>
         </div>
-        <h3>Current frame</h3>
+        <h3 className="title">
+          <IconScan size={18} />
+          Current frame
+        </h3>
         {stats.lastDetections.length === 0 ? (
           <p className="muted">No defects in the latest frame.</p>
         ) : (

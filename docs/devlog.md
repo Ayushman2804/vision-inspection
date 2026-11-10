@@ -22,6 +22,7 @@ Template:
 ## 2026-11-10
 
 **Did**
+- UI redesign on `feat/ui-redesign` (stacked on `feat/frontend-resilience`): sidebar layout, icons, floating action button, drifting defect-glyph background, new palette and type. Checked at 1440, 390 and 360 px against the real stack: no horizontal overflow, no console errors; fixed the brand text and nav wrapping on phones and KPI figures wrapping at 360 px.
 - Frontend resilience pass on `feat/frontend-resilience`: first-load skeletons (Dashboard, History), spinner overlay on Upload, Retry on Upload/Dashboard/History, Live pauses after 3 failed frames with Resume, 401 vs retryable errors (`ApiError`).
 - New `useLiveQuery` hook: first-load vs background refresh tracked separately, throttled (4 s) non-overlapping refetch on poll, focus and the new-inspection signal.
 - Fixed horizontal overflow at phone width; History is cards below 640 px; KPI tiles in 2 columns; horizontal bar chart.

@@ -3,6 +3,7 @@ import { api, apiBase } from '../api.js';
 import BBoxCanvas from '../components/BBoxCanvas.jsx';
 import { ErrorNotice, Spinner } from '../components/Feedback.jsx';
 import { colorFor } from '../draw.js';
+import { IconResult, IconUpload } from '../components/Icons.jsx';
 import { useNotifyInspection } from '../inspectionSignal.jsx';
 
 export default function Upload() {
@@ -42,9 +43,12 @@ export default function Upload() {
   }
 
   return (
-    <div className="grid two">
+    <div className="grid wide-left">
       <section className="card">
-        <h2>Inspect an image</h2>
+        <h2 className="title">
+          <IconUpload size={22} />
+          Inspect an image
+        </h2>
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"
@@ -81,7 +85,10 @@ export default function Upload() {
       </section>
 
       <section className="card">
-        <h2>Result</h2>
+        <h2 className="title">
+          <IconResult size={22} />
+          Result
+        </h2>
         {!result && <p className="muted">Upload a steel-surface image to see detections.</p>}
         {result && (
           <>

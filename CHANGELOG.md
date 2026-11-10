@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### UI redesign
+- Fixed left sidebar on wide screens (grouped Monitor / Records navigation, signed-in email, Sign out); collapses to a top bar below 900 px with the four links on one row.
+- Blued-steel palette with Cloudflare-orange accent; Barlow / Barlow Semi Condensed type (Google Fonts) with tabular figures.
+- Icons on KPI tiles, section headers and navigation (inline SVG, no icon dependency).
+- Floating "Inspect an image" button (bottom right, expands on hover, hidden on Upload).
+- Background of slowly drifting outlines of the six NEU-DET defect classes; still when reduced motion is preferred.
+- Live and Upload use a 3:2 split on wide screens. The throughput chart draws Inspected as a filled area so it stays visible under Defective at a 100% defect rate.
+
 ### Dashboard resilience and phone layout
 - Loading skeletons sized like the real content: Dashboard KPI tiles and chart blocks, History rows; route chunks show a spinner. Skeletons appear only on a page's first load; the 10 s Dashboard poll and other background refreshes show a small dot instead.
 - Upload shows a spinner over the image while analyzing. A failed inspection keeps the file and preview and offers Retry.

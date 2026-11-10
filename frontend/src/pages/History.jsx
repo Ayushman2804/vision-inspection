@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api, apiBase } from '../api.js';
 import { ErrorNotice, Skeleton } from '../components/Feedback.jsx';
 import { CLASS_NAMES, colorFor } from '../draw.js';
+import { IconHistory } from '../components/Icons.jsx';
 import { useLiveQuery } from '../useLiveQuery.js';
 
 const PAGE = 15;
@@ -27,7 +28,10 @@ export default function History() {
   return (
     <section className="card">
       <div className="row">
-        <h2>Inspection history</h2>
+        <h2 className="title">
+          <IconHistory size={22} />
+          Inspection history
+        </h2>
         <span className={`refresh-dot${refreshing && !loading ? ' on' : ''}`} title="Refreshing" aria-hidden="true" />
       </div>
       <div className="row">

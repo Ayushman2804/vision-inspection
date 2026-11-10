@@ -33,6 +33,8 @@ Last updated: 2026-11-10
 
 - Branch `feat/frontend-resilience` (2026-11-10, not merged): skeletons, retry/resume, History/Dashboard sync with new inspections, phone layout, zero-filled stats timeline. Checked in the browser (mock API and the real stack); gateway 9/9 against Postgres, `scripts/e2e_check.js` 27/27.
 
+- Branch `feat/ui-redesign` (stacked on `feat/frontend-resilience`): Cloudflare-style sidebar layout, icons, floating action button, animated defect background. README screenshots still show the old UI.
+
 ## Known issues
 
 - Live sampling drops to ~1–2 fps when the tab is hidden (browser throttles `toBlob`).
