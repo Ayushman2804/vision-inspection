@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { drawDetections } from '../draw.js';
+import { useNotifyInspection } from '../inspectionSignal.jsx';
 
 const FPS = 3; // frames sampled per second and sent for inference
+const MAX_FAILURES = 3; // consecutive failed frames before sampling pauses
 const FRAME_WIDTH = 640;
 
 export default function Live() {
@@ -15,7 +17,11 @@ export default function Live() {
   const [conf, setConf] = useState(0.25);
   const [stats, setStats] = useState({ frames: 0, fails: 0, latency: 0, lastDetections: [] });
   const [alert, setAlert] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // video load errors
+  const [failure, setFailure] = useState(null); // { error, count, paused } for inference calls
+  const failures = useRef(0);
+  const pausedRef = useRef(false);
+  const notifyInspection = useNotifyInspection();
 
   useEffect(() => {
     captureRef.current = document.createElement('canvas');
@@ -28,7 +34,7 @@ export default function Live() {
 
   const tick = useCallback(async () => {
     const video = videoRef.current;
-    if (!video || video.paused || video.ended || !video.videoWidth || inFlight.current) return;
+    if (!video || video.paused || video.ended || !video.videoWidth || inFlight.current || pausedRef.current) return;
     inFlight.current = true; // back-pressure: never queue more than one frame
     try {
       const cap = captureRef.current;
@@ -55,13 +61,30 @@ export default function Live() {
         };
       });
       if (res.alert) setAlert(res.alert);
-      setError('');
+      notifyInspection();
+      failures.current = 0;
+      setFailure((f) => (f ? null : f));
     } catch (e) {
-      setError(e.message);
+      failures.current += 1;
+      // Isolated failures are skipped; after MAX_FAILURES in a row, stop sampling and ask.
+      // A 401 signs the user out (api.js), so there is nothing to resume.
+      const paused = failures.current >= MAX_FAILURES && e.retryable !== false;
+      setFailure({ error: e, count: failures.current, paused });
+      if (paused) {
+        pausedRef.current = true;
+        videoRef.current?.pause();
+      }
     } finally {
       inFlight.current = false;
     }
-  }, [conf]);
+  }, [conf, notifyInspection]);
+
+  function resume() {
+    failures.current = 0;
+    pausedRef.current = false;
+    setFailure(null);
+    videoRef.current?.play().catch(() => {});
+  }
 
   useEffect(() => {
     const id = setInterval(tick, 1000 / FPS);
@@ -75,6 +98,10 @@ export default function Live() {
   }, [alert]);
 
   function reset() {
+    failures.current = 0;
+    pausedRef.current = false;
+    setFailure(null);
+    setError('');
     setStats({ frames: 0, fails: 0, latency: 0, lastDetections: [] });
     const o = overlayRef.current;
     if (o) o.getContext('2d').clearRect(0, 0, o.width, o.height);
@@ -127,6 +154,7 @@ export default function Live() {
             muted
             playsInline
             onError={() => setError('Could not load the video. For the sample, add frontend/public/sample.mp4 (see README).')}
+            onPlay={() => pausedRef.current && resume()}
           />
           <canvas ref={overlayRef} className="overlay" />
         </div>
@@ -134,6 +162,21 @@ export default function Live() {
           Press play: {FPS} frames/sec are sampled in your browser and sent to the model. Results are saved to history.
         </p>
         {error && <div className="error">{error}</div>}
+        {failure?.paused && (
+          <div className="error" role="alert">
+            <strong>Sampling paused</strong> after {failure.count} failed frames in a row: {failure.error.message}
+            <div className="row" style={{ marginTop: 8 }}>
+              <button type="button" className="secondary small" onClick={resume}>
+                Resume
+              </button>
+            </div>
+          </div>
+        )}
+        {failure && !failure.paused && (
+          <p className="muted warn">
+            Frame failed ({failure.count}/{MAX_FAILURES}): {failure.error.message}. Retrying with the next frame.
+          </p>
+        )}
       </section>
 
       <section className="card">

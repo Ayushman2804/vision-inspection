@@ -2,11 +2,24 @@
 
 ## Unreleased
 
+## 2026-11-10: PR #3 (5c98614) and PR #2 merged
+
+### Dashboard resilience and phone layout
+- Loading skeletons sized like the real content: Dashboard KPI tiles and chart blocks, History rows; route chunks show a spinner. Skeletons appear only on a page's first load; the 10 s Dashboard poll and other background refreshes show a small dot instead.
+- Upload shows a spinner over the image while analyzing. A failed inspection keeps the file and preview and offers Retry.
+- Live pauses sampling after 3 consecutive failed frames, says why, and offers Resume (single failures are still skipped).
+- Dashboard and History show fetch errors with Retry and keep the last data on a failed background refresh. A 401 still signs out and never offers Retry (`ApiError.retryable`).
+- History and Dashboard refetch when Upload or Live store an inspection (in-app signal, also broadcast to other tabs) and on window focus. Throttled to one refetch per 4 s, never overlapping an in-flight request; rows only come from the server.
+- Phone layout: no horizontal overflow at 360–414 px. History becomes one card per row below 640 px (the 7-column table was 477 px wide at 360 px); nav links get their own row; KPI tiles in two columns; "Defects by class" is a horizontal bar chart (no angled labels).
+- `GET /api/stats`: the timeline is zero-filled with `generate_series`, so empty hours/days plot as 0 instead of being skipped. New gateway test covers a range with a gap (needs Postgres; CI's gateway job now has a Postgres service and `REQUIRE_DB=1`).
+
 ### Experiment: NEU-DET + GC10-DET (not shipped)
 - `ml/prepare_combined.py` builds a 16-class YOLO dataset from NEU-DET and GC10-DET (Hugging Face mirror `lzhzj/gc10-det`, CC BY 4.0), with per-source validation splits.
 - Trained a combined YOLO26n: NEU-DET mAP@0.5 0.747 vs 0.739 shipped (mAP@0.5:0.95 0.395 vs 0.404), GC10-DET 0.689, ~2 ms slower on CPU. Kept the shipped model. Results in `docs/results/neu-gc10-26n/`.
 - `ml/train.py --resume LAST_PT` continues an interrupted run and still writes `metrics_summary.json`.
 - `ml/monitor.html`: time-per-epoch/ETA uses recent epoch gaps, so it stays right after a resume.
+
+## 2026-11-09: Real-model seed, committed to `main` (2f7d653)
 
 ### Demo data from the real model
 - `npm run seed` now posts NEU-DET validation images through `POST /api/inspect` (default 120, ~1 upload : 4 video), so every detection is real YOLO26n output; it then backdates the rows over 7 days with uneven daily volume. Tag is now `seed-demo:<model version>`; `--reset` also deletes seeded upload files.

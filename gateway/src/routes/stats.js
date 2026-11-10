@@ -30,13 +30,25 @@ router.get(
          GROUP BY d.class_name ORDER BY count DESC`,
         [uid, days],
       ),
+      // One row per bucket across the whole range, so empty hours/days come back as 0
+      // instead of being missing (which made the line chart bridge the gap).
       pool.query(
-        `SELECT date_trunc('${unit}', created_at) AS bucket,
-                count(*)::int AS total,
-                count(*) FILTER (WHERE status = 'fail')::int AS fails
-         FROM inspections
-         WHERE user_id = $1 AND created_at > now() - make_interval(days => $2::int)
-         GROUP BY 1 ORDER BY 1`,
+        `WITH buckets AS (
+           SELECT generate_series(
+                    date_trunc('${unit}', now() - make_interval(days => $2::int)),
+                    date_trunc('${unit}', now()),
+                    interval '1 ${unit}'
+                  ) AS bucket
+         )
+         SELECT b.bucket,
+                count(i.id)::int AS total,
+                count(i.id) FILTER (WHERE i.status = 'fail')::int AS fails
+         FROM buckets b
+         LEFT JOIN inspections i
+           ON i.user_id = $1
+          AND i.created_at > now() - make_interval(days => $2::int)
+          AND date_trunc('${unit}', i.created_at) = b.bucket
+         GROUP BY b.bucket ORDER BY b.bucket`,
         [uid, days],
       ),
     ]);
