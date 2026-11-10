@@ -27,8 +27,8 @@ PostgreSQL  (users, inspections, defects, alerts)
 2. Gateway: `requireAuth` → multer (memory, 8 MB, JPEG/PNG/WebP) → clamps `conf` to 0.05–0.95 (default 0.25).
 3. Gateway forwards the image to `inference /predict?conf=…` (30 s timeout; errors become 502).
 4. Inference returns `{ detections: [{class_name, confidence, bbox, area_pct}], latency_ms, model_version, image }`.
-5. For `source=upload` only, the original is written to `UPLOAD_DIR` and served at `/uploads/<uuid>.<ext>`. Video frames are never stored.
-6. One transaction inserts the `inspections` row (status `fail` if any detection) and its `defects` rows.
+5. The original is written to `UPLOAD_DIR` and served at `/uploads/<uuid>.<ext>` for every `source=upload`, and for `source=video` frames per `SAVE_VIDEO_FRAMES` (`defects`: only frames with a detection; `none`; `all`).
+6. One transaction inserts the `inspections` row (status `fail` if any detection) and its `defects` rows. If it fails, the saved image is removed.
 7. `evaluateAlert` checks the last `ALERT_WINDOW` inspections. If the fail rate ≥ `ALERT_THRESHOLD` and no alert fired in the last `ALERT_COOLDOWN_SEC`, it stores a `high_defect_rate` alert.
 8. Response: `{ inspection, detections, image, alert }`.
 
@@ -38,7 +38,10 @@ PostgreSQL  (users, inspections, defects, alerts)
 |---|---|---|---|
 | POST | `/api/auth/register`, `/api/auth/login` | – | 20 req/min limit; JWT valid 12 h; password ≥ 8 chars |
 | POST | `/api/inspect` | JWT | see flow above |
-| GET | `/api/inspections` | JWT | filters `status`, `source`, `class`; `limit` 1–100, `offset` |
+| GET | `/api/inspections` | JWT | filters `status`, `source`, `class`, `from`, `to` (ISO dates, `to` exclusive); `limit` 1–100, `offset` |
+| GET | `/api/inspections/export.csv` | JWT | same filters; CSV attachment, max 50,000 rows (`X-Total-Rows`, `X-Truncated` headers) |
+| GET | `/api/inspections/:id` | JWT | one inspection with `defects`; 404 if missing or another user's |
+| DELETE | `/api/inspections/:id` | JWT | deletes row, defects (cascade) and image file; 204 |
 | GET | `/api/stats?days=N` | JWT | N 1–90; hourly buckets when N ≤ 2, else daily; every bucket in the range is returned (empty ones as 0) |
 | GET | `/api/alerts` | JWT | last 50 |
 | GET | `/api/health` | – | DB `SELECT 1` |
@@ -75,6 +78,7 @@ Detector choice at startup: `MOCK_MODE=true` → `MockDetector`; else `MODEL_PAT
 | gateway | `INFERENCE_URL` | http://localhost:8000 | |
 | gateway | `CORS_ORIGINS` | http://localhost:5173 | comma-separated |
 | gateway | `UPLOAD_DIR` | ./uploads | ephemeral on Cloud Run |
+| gateway | `SAVE_VIDEO_FRAMES` | defects | which Live frames keep their image: `none`, `defects`, `all` |
 | gateway | `ALERT_WINDOW` / `ALERT_THRESHOLD` / `ALERT_COOLDOWN_SEC` | 20 / 0.5 / 60 | |
 | gateway (tests) | `REQUIRE_DB` | unset | `1` makes the Postgres-backed tests fail instead of skipping when the DB is unreachable (CI sets it) |
 | inference | `MODEL_PATH` / `LABELS_PATH` | models/best.onnx / models/labels.json | |
@@ -87,6 +91,6 @@ Examples: `gateway/.env.example`, `frontend/.env.example`, and the root `.env.ex
 
 ## Known limits
 
-- Uploads live on local disk; lost on Cloud Run restarts.
+- Uploads live on local disk; lost on Cloud Run restarts. Nothing deletes old files automatically: run `npm run cleanup-uploads` (orphans, and `--prune-video-days N` for old video frames).
 - Schema bootstrap only, no migrations: a column change needs a manual `ALTER` on existing databases.
 - One global confidence threshold; crazing and rolled-in_scale would do better near 0.20.

@@ -10,6 +10,10 @@ export const config = {
   inferenceUrl: (process.env.INFERENCE_URL || 'http://localhost:8000').replace(/\/$/, ''),
   corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((s) => s.trim()),
   uploadDir: process.env.UPLOAD_DIR || './uploads',
+  // Which Live video frames keep their image: none | defects (failed frames only) | all. Uploads always keep theirs.
+  saveVideoFrames: ['none', 'defects', 'all'].includes(process.env.SAVE_VIDEO_FRAMES)
+    ? process.env.SAVE_VIDEO_FRAMES
+    : 'defects',
   alertWindow: Number(process.env.ALERT_WINDOW || 20),
   alertThreshold: Number(process.env.ALERT_THRESHOLD || 0.5),
   alertCooldownSec: Number(process.env.ALERT_COOLDOWN_SEC || 60),
