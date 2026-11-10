@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2026-11-10: PR #3 (5c98614) and PR #2 merged
+
 ### Dashboard resilience and phone layout
 - Loading skeletons sized like the real content: Dashboard KPI tiles and chart blocks, History rows; route chunks show a spinner. Skeletons appear only on a page's first load; the 10 s Dashboard poll and other background refreshes show a small dot instead.
 - Upload shows a spinner over the image while analyzing. A failed inspection keeps the file and preview and offers Retry.
@@ -16,6 +18,8 @@
 - Trained a combined YOLO26n: NEU-DET mAP@0.5 0.747 vs 0.739 shipped (mAP@0.5:0.95 0.395 vs 0.404), GC10-DET 0.689, ~2 ms slower on CPU. Kept the shipped model. Results in `docs/results/neu-gc10-26n/`.
 - `ml/train.py --resume LAST_PT` continues an interrupted run and still writes `metrics_summary.json`.
 - `ml/monitor.html`: time-per-epoch/ETA uses recent epoch gaps, so it stays right after a resume.
+
+## 2026-11-09: Real-model seed, committed to `main` (2f7d653)
 
 ### Demo data from the real model
 - `npm run seed` now posts NEU-DET validation images through `POST /api/inspect` (default 120, ~1 upload : 4 video), so every detection is real YOLO26n output; it then backdates the rows over 7 days with uneven daily volume. Tag is now `seed-demo:<model version>`; `--reset` also deletes seeded upload files.

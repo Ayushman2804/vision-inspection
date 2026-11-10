@@ -31,6 +31,7 @@ Template:
 - Checked 11 user-supplied images (`images_train/`): unlabeled stock metal-texture photos, three with stock-site watermarks. The shipped model flagged diamond-plate and galvanized textures as defects and missed fine scratches on bright metal (domain shift). Deleted them at the user's request.
 - Downloaded GC10-DET from Hugging Face (`lzhzj/gc10-det`, 2,294 images, CC BY 4.0 per the Roboflow mirror) into `ml/data/` and built a 16-class NEU-DET + GC10-DET dataset (`ml/prepare_combined.py`).
 - Trained a combined YOLO26n (early stop at epoch 78). NEU-DET: mAP@0.5 0.747 vs 0.739 shipped, mAP@0.5:0.95 0.395 vs 0.404; GC10-DET test 0.689; parity 50/50; CPU p50 32.6 vs 30.3 ms.
+- Recorded the experiment as PR #3 and merged it (5c98614). That conflicted PR #2 on the shared docs (CHANGELOG, devlog); PR #2's session merged `main` in (44797fc), CI green again, then PR #2 merged too. CHANGELOG now has dated sections for both.
 
 **Decided**
 - The new-inspection signal is also broadcast to other tabs (BroadcastChannel). Only one page is mounted per tab, so an in-tab context alone would almost never reach an "already open" History page.
@@ -43,7 +44,7 @@ Template:
 - GC10's sheet inclusion (0.30) and rolled pit (0.24) are weak; crease and waist fold have 1–2 test boxes, so their scores are meaningless.
 
 **Next**
-- PR #2 (`feat/frontend-resilience`) open; UI redesign stacked on it as PR #4.
+- Review and merge PR #4 (UI redesign); it was built on PR #2's branch, so check it against the new `main`.
 - Deployment, unless GC10 classes become a requirement.
 
 ## 2026-11-09
