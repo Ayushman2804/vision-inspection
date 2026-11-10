@@ -6,7 +6,7 @@ import { drawDetections } from '../draw.js';
 const TARGET_WIDTH = 900;
 
 /** Renders an image with detection boxes drawn on top. */
-export default function BBoxCanvas({ src, detections }) {
+export default function BBoxCanvas({ src, detections, onError }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -23,7 +23,9 @@ export default function BBoxCanvas({ src, detections }) {
       const scaled = detections.map((d) => ({ ...d, bbox: d.bbox.map((v) => v * k) }));
       drawDetections(ctx, scaled, 1.4);
     };
+    img.onerror = () => onError?.();
     img.src = src;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, detections]);
 
   return <canvas ref={ref} className="bbox-canvas" />;

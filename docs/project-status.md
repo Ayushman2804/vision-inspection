@@ -17,7 +17,8 @@ Last updated: 2026-11-10
 | 7a | Frontend resilience (skeletons, retry, live sync, phone layout) and zero-filled stats timeline | Done; PR #2 merged |
 | 7b | UI redesign (sidebar layout, icons, floating action button) | In review: PR #4 |
 | 8a | Experiment: NEU-DET + GC10-DET combined 16-class model | Done, not shipped (NEU-DET tie: 0.747 vs 0.739 mAP@0.5; GC10 0.689); recorded in PR #3 (5c98614) |
-| 7c | Inspection history API: keep defective video frames, get/delete one inspection, CSV export, upload cleanup script | In review: PR on `feat/inspection-history-api`; frontend not wired yet |
+| 7c | Inspection history API: keep defective video frames, get/delete one inspection, CSV export, upload cleanup script | In review: PR #5 (`feat/inspection-history-api`) |
+| 7d | Inspection history UI: date filters, CSV export, detail dialog, delete | Branch `feat/history-ui`, rebased onto PR #5; merge after PR #5 |
 | 9 | Human review queue and retraining export | Not started |
 
 ## Where things stand
@@ -28,6 +29,7 @@ Last updated: 2026-11-10
 - Local Postgres uses the new `pgdata18` volume; demo history comes from `npm run seed`: real YOLO26n detections on NEU-DET val images, backdated over 7 days (tagged `seed-demo:*`), not production line data.
 - Training run, ONNX candidates and logs live in `ml/runs/` (gitignored); results worth keeping are copied to `docs/results/<run>/` (yolo26n shipped; neu-gc10-26n experiment, not shipped).
 - GC10-DET is downloaded to `ml/data/gc10-det-raw` and the combined dataset to `ml/data/neu-gc10` (gitignored); its candidate ONNX is in `ml/runs/neu-gc10-26n/onnx/`.
+- Branch `feat/history-ui` (frontend only): History date filters, CSV export, `/history/:id` detail dialog with delete, thumbnails for video frames. Checked in the browser against the gateway with the history API (uncommitted in the main checkout at the time): filters, export (incl. a stubbed truncated response and a 503), detail, not-found, delete with cross-tab Dashboard refetch, 360 px.
 - Long training runs: use a terminal tab and `ml/train.py --resume`; WMI-launched runs were killed silently.
 
 ## Pre-merge checks (PR #1, all passed)
@@ -47,7 +49,7 @@ Last updated: 2026-11-10
 
 ## Next up
 
-0. Wire the new history endpoints into the frontend (History: detail view, delete, Export CSV, date range; Live: note that defective frames are saved).
+0. Merge PR #5 (history API), then `feat/history-ui` (History UI built on it).
 1. Run `scripts/e2e_check.js` in CI with a Postgres service container.
 2. Deploy (milestone 8) and replace the 80–120 ms Cloud Run estimate with a measurement.
 3. Move uploads to object storage with signed URLs.

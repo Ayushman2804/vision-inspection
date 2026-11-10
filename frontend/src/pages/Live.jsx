@@ -159,7 +159,7 @@ export default function Live() {
           <canvas ref={overlayRef} className="overlay" />
         </div>
         <p className="muted">
-          Press play: {FPS} frames/sec are sampled in your browser and sent to the model. Results are saved to history.
+          Press play: {FPS} frames/sec are sampled in your browser and sent to the model. Frames with a defect are saved to History.
         </p>
         {error && <div className="error">{error}</div>}
         {failure?.paused && (
