@@ -19,6 +19,23 @@ Template:
 
 ---
 
+## 2026-11-10
+
+**Did**
+- Checked 11 user-supplied images (`images_train/`): unlabeled stock metal-texture photos, three with stock-site watermarks. The shipped model flagged diamond-plate and galvanized textures as defects and missed fine scratches on bright metal (domain shift). Deleted them at the user's request.
+- Downloaded GC10-DET from Hugging Face (`lzhzj/gc10-det`, 2,294 images, CC BY 4.0 per the Roboflow mirror) into `ml/data/` and built a 16-class NEU-DET + GC10-DET dataset (`ml/prepare_combined.py`).
+- Trained a combined YOLO26n (early stop at epoch 78). NEU-DET: mAP@0.5 0.747 vs 0.739 shipped, mAP@0.5:0.95 0.395 vs 0.404; GC10-DET test 0.689; parity 50/50; CPU p50 32.6 vs 30.3 ms.
+
+**Decided**
+- Keep the shipped NEU-only YOLO26n: the NEU-DET difference is within noise, scratches got worse, and the app doesn't need GC10's classes yet.
+- Don't launch training through WMI (`Win32_Process.Create`): three runs died silently with the whole process tree after 5–40 minutes, likely WMI's 512 MB provider-host memory quota. Run long jobs in a terminal tab instead, with `train.py --resume` for interruptions.
+
+**Open / blocked**
+- GC10's sheet inclusion (0.30) and rolled pit (0.24) are weak; crease and waist fold have 1–2 test boxes, so their scores are meaningless.
+
+**Next**
+- Deployment, unless GC10 classes become a requirement.
+
 ## 2026-11-09
 
 **Did**

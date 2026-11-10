@@ -153,6 +153,19 @@ The rule set before training: replace YOLOv8n only if mAP@0.5 is at most 0.01 lo
 
 YOLOv8n's files are kept in `ml/runs/backup-yolov8n-models/` if a rollback is needed.
 
+#### Experiment: adding GC10-DET (not shipped)
+
+We trained a 16-class YOLO26n on NEU-DET plus [GC10-DET](https://huggingface.co/datasets/lzhzj/gc10-det) (2,294 metallic-sheet line-scan images, 10 more defect types; Roboflow export of Lv et al., *Sensors* 2020, CC BY 4.0 per the mirror) with the same settings, built with `ml/prepare_combined.py`. Early stopping ended it at epoch 78.
+
+| | Shipped YOLO26n | Combined 16-class |
+|---|---|---|
+| NEU-DET val mAP@0.5 / 0.5:0.95 | 0.739 / **0.404** | **0.747** / 0.395 |
+| NEU-DET crazing / scratches AP@0.5 | 0.496 / **0.826** | **0.565** / 0.792 |
+| GC10-DET test mAP@0.5 | – | 0.689 |
+| CPU p50 (same session) | **30.3 ms** | 32.6 ms |
+
+On NEU-DET it's a wash: +0.008 mAP@0.5 is within run-to-run noise, box precision dips, and crazing's gain is offset by worse scratches. On GC10-DET, punching, weld line and crescent gap reach 0.96–0.97 AP@0.5, but sheet inclusion (0.30) and rolled pit (0.24) are weak, and crease and waist fold have only 2 and 1 test boxes. The shipped model stays; the combined one is the starting point if GC10's defect types are ever needed. Results: [`docs/results/neu-gc10-26n/`](docs/results/neu-gc10-26n/).
+
 #### Earlier decision: YOLOv8n over YOLOv8s
 
 We trained YOLOv8s (3.5× the parameters) to test whether model capacity was the bottleneck. It wasn't, so the smaller model shipped. (Numbers in this section are from that session, when YOLOv8n measured 29.0 ms CPU p50.)

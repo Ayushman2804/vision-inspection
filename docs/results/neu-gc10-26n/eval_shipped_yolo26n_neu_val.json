@@ -1,0 +1,24 @@
+{
+  "weights": "shipped yolo26n best.pt",
+  "data": "data/neu-det/data.yaml",
+  "mAP50": 0.7387330088255437,
+  "mAP50-95": 0.4038983922883533,
+  "P": 0.738650924899876,
+  "R": 0.6618287608917736,
+  "AP50": {
+    "crazing": 0.496,
+    "inclusion": 0.827,
+    "patches": 0.913,
+    "pitted_surface": 0.787,
+    "rolled-in_scale": 0.584,
+    "scratches": 0.826
+  },
+  "AP50-95": {
+    "crazing": 0.192,
+    "inclusion": 0.45,
+    "patches": 0.576,
+    "pitted_surface": 0.465,
+    "rolled-in_scale": 0.249,
+    "scratches": 0.491
+  }
+}
