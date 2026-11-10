@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Experiment: NEU-DET + GC10-DET (not shipped)
+- `ml/prepare_combined.py` builds a 16-class YOLO dataset from NEU-DET and GC10-DET (Hugging Face mirror `lzhzj/gc10-det`, CC BY 4.0), with per-source validation splits.
+- Trained a combined YOLO26n: NEU-DET mAP@0.5 0.747 vs 0.739 shipped (mAP@0.5:0.95 0.395 vs 0.404), GC10-DET 0.689, ~2 ms slower on CPU. Kept the shipped model. Results in `docs/results/neu-gc10-26n/`.
+- `ml/train.py --resume LAST_PT` continues an interrupted run and still writes `metrics_summary.json`.
+- `ml/monitor.html`: time-per-epoch/ETA uses recent epoch gaps, so it stays right after a resume.
+
 ### Demo data from the real model
 - `npm run seed` now posts NEU-DET validation images through `POST /api/inspect` (default 120, ~1 upload : 4 video), so every detection is real YOLO26n output; it then backdates the rows over 7 days with uneven daily volume. Tag is now `seed-demo:<model version>`; `--reset` also deletes seeded upload files.
 - Dashboard and History screenshots retaken on the seeded data; README says the history is seeded.

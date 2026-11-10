@@ -1,0 +1,32 @@
+{
+  "weights": "neu-gc10-26n best.pt",
+  "data": "data/neu-gc10/val_gc10.yaml",
+  "mAP50": 0.6886216730411385,
+  "mAP50-95": 0.38524297709633987,
+  "P": 0.6970422113587202,
+  "R": 0.6700705100281527,
+  "AP50": {
+    "punching": 0.973,
+    "weld_line": 0.964,
+    "crescent_gap": 0.972,
+    "water_spot": 0.812,
+    "oil_spot": 0.588,
+    "silk_spot": 0.552,
+    "sheet_inclusion": 0.299,
+    "rolled_pit": 0.236,
+    "crease": 0.495,
+    "waist_fold": 0.995
+  },
+  "AP50-95": {
+    "punching": 0.503,
+    "weld_line": 0.48,
+    "crescent_gap": 0.613,
+    "water_spot": 0.421,
+    "oil_spot": 0.334,
+    "silk_spot": 0.214,
+    "sheet_inclusion": 0.087,
+    "rolled_pit": 0.107,
+    "crease": 0.198,
+    "waist_fold": 0.895
+  }
+}
