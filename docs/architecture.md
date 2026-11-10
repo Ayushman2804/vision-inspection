@@ -39,7 +39,7 @@ PostgreSQL  (users, inspections, defects, alerts)
 | POST | `/api/auth/register`, `/api/auth/login` | – | 20 req/min limit; JWT valid 12 h; password ≥ 8 chars |
 | POST | `/api/inspect` | JWT | see flow above |
 | GET | `/api/inspections` | JWT | filters `status`, `source`, `class`; `limit` 1–100, `offset` |
-| GET | `/api/stats?days=N` | JWT | N 1–90; hourly buckets when N ≤ 2, else daily |
+| GET | `/api/stats?days=N` | JWT | N 1–90; hourly buckets when N ≤ 2, else daily; every bucket in the range is returned (empty ones as 0) |
 | GET | `/api/alerts` | JWT | last 50 |
 | GET | `/api/health` | – | DB `SELECT 1` |
 | GET | `/uploads/*` | – | static, 1 day cache |

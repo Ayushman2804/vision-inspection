@@ -19,6 +19,25 @@ Template:
 
 ---
 
+## 2026-11-10
+
+**Did**
+- Frontend resilience pass on `feat/frontend-resilience`: first-load skeletons (Dashboard, History), spinner overlay on Upload, Retry on Upload/Dashboard/History, Live pauses after 3 failed frames with Resume, 401 vs retryable errors (`ApiError`).
+- New `useLiveQuery` hook: first-load vs background refresh tracked separately, throttled (4 s) non-overlapping refetch on poll, focus and the new-inspection signal.
+- Fixed horizontal overflow at phone width; History is cards below 640 px; KPI tiles in 2 columns; horizontal bar chart.
+- `/api/stats` timeline zero-filled with `generate_series`, plus a Postgres-backed gateway test; CI gateway job gets a Postgres service.
+- Checked in the browser against an in-memory mock API (Docker was off and training was using the RAM, 1.9 GB free): no overflow on any page at 360/390/414 px; 0 skeletons during three 10 s polls; skeleton layout matches real content (Dashboard exact, History rows within 3 px); an Upload in one tab showed up in History open in another tab; 27 signals in 9 s gave 4 History fetches; Live paused after exactly 3 failed calls and Resume restarted it; 401 signed out with no Retry.
+
+**Decided**
+- The new-inspection signal is also broadcast to other tabs (BroadcastChannel). Only one page is mounted per tab, so an in-tab context alone would almost never reach an "already open" History page.
+- History on phones: cards rather than a horizontally scrolling table.
+- Recharts animations off on the Dashboard so a poll with new numbers doesn't replay the draw-in.
+
+- After training finished (run `neu-gc10-26n` stopped at epoch 78/100), started the stack with the real model: gateway tests 9/9 against Postgres with `REQUIRE_DB=1` (both zero-fill tests fail on the old `date_trunc` query, pass on the new one); `scripts/e2e_check.js` 27/27; Dashboard on the seeded data at 390 px, no overflow, today's empty bucket plotted as 0.
+
+**Next**
+- Open the PR for `feat/frontend-resilience`.
+
 ## 2026-11-09
 
 **Did**

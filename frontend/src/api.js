@@ -4,7 +4,21 @@ export const apiBase = BASE;
 export const getToken = () => localStorage.getItem('token');
 export const setToken = (t) => (t ? localStorage.setItem('token', t) : localStorage.removeItem('token'));
 
-async function request(path, { method = 'GET', body, form } = {}) {
+/**
+ * Error from an API call. `status` is the HTTP status, or 0 when the request never got a
+ * response (network down, gateway unreachable, CORS). `retryable` is false only for 401:
+ * that case already signs the user out, so offering "Retry" would be pointless.
+ */
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.retryable = status !== 401;
+  }
+}
+
+async function request(path, { method = 'GET', body, form, signal } = {}) {
   const headers = {};
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -15,13 +29,19 @@ async function request(path, { method = 'GET', body, form } = {}) {
     headers['Content-Type'] = 'application/json';
     payload = JSON.stringify(body);
   }
-  const res = await fetch(`${BASE}${path}`, { method, headers, body: payload });
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, { method, headers, body: payload, signal });
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+    throw new ApiError('Could not reach the server. Check your connection.', 0);
+  }
   const data = await res.json().catch(() => ({}));
   if (res.status === 401 && token) {
     setToken(null);
     window.dispatchEvent(new Event('auth:logout'));
   }
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  if (!res.ok) throw new ApiError(data.error || `Request failed (${res.status})`, res.status);
   return data;
 }
 
@@ -41,7 +61,7 @@ export const api = {
     form.append('image', blob, 'frame.jpg');
     return request('/api/inspect', { method: 'POST', form });
   },
-  history: (params) => request(`/api/inspections?${qs(params)}`),
-  stats: (days) => request(`/api/stats?days=${days}`),
-  alerts: () => request('/api/alerts'),
+  history: (params, opts) => request(`/api/inspections?${qs(params)}`, opts),
+  stats: (days, opts) => request(`/api/stats?days=${days}`, opts),
+  alerts: (opts) => request('/api/alerts', opts),
 };

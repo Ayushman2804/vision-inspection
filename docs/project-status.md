@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-11-09 (evening)
+Last updated: 2026-11-10
 
 ## Milestones
 
@@ -30,6 +30,8 @@ Last updated: 2026-11-09 (evening)
 - `scripts/e2e_check.js`: 27/27 against the running stack (ALERT_WINDOW 20 and 3).
 - Live page: 3.0 fps when the tab is focused (round trip ~61 ms: ~35 ms model, ~26 ms gateway + DB). The earlier ~1 fps was the browser throttling `canvas.toBlob()` in a hidden tab, not an app bug; documented in the README.
 - Screenshots retaken against YOLO26n with real inspections only.
+
+- Branch `feat/frontend-resilience` (2026-11-10, not merged): skeletons, retry/resume, History/Dashboard sync with new inspections, phone layout, zero-filled stats timeline. Checked in the browser (mock API and the real stack); gateway 9/9 against Postgres, `scripts/e2e_check.js` 27/27.
 
 ## Known issues
 

@@ -26,7 +26,16 @@ main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; display: flex
 .grid { display: grid; gap: 16px; }
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 800px) { .grid.two, .grid.four { grid-template-columns: 1fr; } .nav { flex-wrap: wrap; gap: 8px; } }
+@media (max-width: 800px) {
+  .grid.two { grid-template-columns: 1fr; }
+  /* Two KPI columns on phones: four stacked tiles is a lot of scrolling. */
+  .grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  /* Brand + Sign out on the first line, the four links on their own full-width line. */
+  .nav { flex-wrap: wrap; gap: 8px 12px; padding: 10px 16px; }
+  .nav .brand { flex: 1; min-width: 0; }
+  .nav nav { order: 3; flex-basis: 100%; flex-wrap: wrap; gap: 4px; }
+  .nav nav a { padding: 6px 10px; }
+}
 
 .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .row.between { justify-content: space-between; }
@@ -40,7 +49,7 @@ input[type='range'] { padding: 0; }
 
 .kpi { align-items: flex-start; gap: 0; }
 .stat { font-size: 28px; font-weight: 700; display: block; }
-.stat-row { display: flex; gap: 28px; }
+.stat-row { display: flex; flex-wrap: wrap; gap: 12px 28px; }
 .stat-row > div { display: flex; flex-direction: column; }
 
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -65,3 +74,42 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-directio
 
 .auth-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
 .auth { width: 100%; max-width: 380px; }
+
+button.small { padding: 4px 10px; font-size: 13px; }
+.error.row { flex-wrap: wrap; }
+.warn { color: #fbbf24; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Loading skeletons. Inline ones hold a non-breaking space so they take the text's line height. */
+.skeleton { display: inline-block; max-width: 100%; border-radius: 6px; color: transparent; user-select: none;
+  background: linear-gradient(90deg, #1a2540 0%, #24314f 50%, #1a2540 100%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+.skeleton.block { display: block; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+/* Subtle background-refresh indicator, so polling never swaps content for skeletons. */
+.refresh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0; transition: opacity 0.3s; margin-bottom: 8px; }
+.refresh-dot.on { opacity: 0.8; }
+
+/* Upload: spinner over the image while the request is in flight. */
+.media-wrap { position: relative; }
+.busy-overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(4, 10, 22, 0.55); border-radius: 8px; }
+.spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(226, 232, 240, 0.25); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .skeleton, .spinner { animation-duration: 3s; } }
+
+.thumb-cell { width: 56px; }
+span.thumb { display: block; }
+
+/* History below 640px: one card per inspection instead of a 7-column table. */
+@media (max-width: 640px) {
+  .history-table thead { display: none; }
+  .history-table, .history-table tbody { display: block; }
+  .history-table tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .history-table td { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; padding: 0; border: 0; min-width: 0; }
+  .history-table td::before { content: attr(data-label); color: var(--muted); font-size: 12px; min-width: 56px; }
+  .history-table td.thumb-cell { grid-column: 2; grid-row: 1 / span 4; width: auto; align-items: flex-start; }
+  .history-table td.thumb-cell::before, .history-table tr.empty td::before { content: none; }
+  .history-table td[data-label='Defects'], .history-table td[data-label='Latency'] { grid-column: 1; }
+}
+.page-loading { display: grid; place-items: center; min-height: 200px; }
+.media-wrap > img, .media-wrap > canvas { display: block; }
