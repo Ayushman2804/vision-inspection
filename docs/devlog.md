@@ -45,7 +45,7 @@ Template:
 - GC10's sheet inclusion (0.30) and rolled pit (0.24) are weak; crease and waist fold have 1–2 test boxes, so their scores are meaningless.
 
 **Next**
-- Review and merge PR #4 (UI redesign); it was built on PR #2's branch, so check it against the new `main`.
+- The UI redesign stays on its own branch, `upgrade` (`main` + redesign), instead of merging PR #4, so the improvement is easy to find and compare.
 - Deployment, unless GC10 classes become a requirement.
 
 ## 2026-11-09

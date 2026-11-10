@@ -15,7 +15,7 @@ Last updated: 2026-11-10
 | 7 | Merge PR #1 into `main` | Done (56cbd64) |
 | 8 | Deploy (Neon + Cloud Run + Vercel) and measure real Cloud Run latency | Not started |
 | 7a | Frontend resilience (skeletons, retry, live sync, phone layout) and zero-filled stats timeline | Done; PR #2 merged |
-| 7b | UI redesign (sidebar layout, icons, floating action button) | In review: PR #4 |
+| 7b | UI redesign (sidebar layout, icons, floating action button) | Kept on branch `upgrade`, not merged into `main` |
 | 8a | Experiment: NEU-DET + GC10-DET combined 16-class model | Done, not shipped (NEU-DET tie: 0.747 vs 0.739 mAP@0.5; GC10 0.689); recorded in PR #3 (5c98614) |
 | 9 | Human review queue and retraining export | Not started |
 
@@ -38,7 +38,7 @@ Last updated: 2026-11-10
 
 - PR #2 `feat/frontend-resilience` (2026-11-10, merged): skeletons, retry/resume, History/Dashboard sync with new inspections, phone layout, zero-filled stats timeline. Checked in the browser (mock API and the real stack); gateway 9/9 against Postgres, `scripts/e2e_check.js` 27/27.
 
-- Branch `feat/ui-redesign` (stacked on `feat/frontend-resilience`): Cloudflare-style sidebar layout, icons, floating action button, animated defect background. README screenshots still show the old UI.
+- Branch `upgrade` (`main` + the UI redesign, kept apart from `main` on purpose): Cloudflare-style sidebar layout, icons, floating action button, animated defect background. README screenshots still show the old UI.
 
 ## Known issues
 
