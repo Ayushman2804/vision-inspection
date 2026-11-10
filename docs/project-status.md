@@ -17,7 +17,7 @@ Last updated: 2026-11-10
 | 7a | Frontend resilience (skeletons, retry, live sync, phone layout) and zero-filled stats timeline | Done; PR #2 merged |
 | 7b | UI redesign (sidebar layout, icons, floating action button) | In review: PR #4 |
 | 8a | Experiment: NEU-DET + GC10-DET combined 16-class model | Done, not shipped (NEU-DET tie: 0.747 vs 0.739 mAP@0.5; GC10 0.689); recorded in PR #3 (5c98614) |
-| 7c | Inspection history API: keep defective video frames, get/delete one inspection, CSV export, upload cleanup script | Done locally (uncommitted); frontend not wired yet |
+| 7c | Inspection history API: keep defective video frames, get/delete one inspection, CSV export, upload cleanup script | In review: PR on `feat/inspection-history-api`; frontend not wired yet |
 | 9 | Human review queue and retraining export | Not started |
 
 ## Where things stand
