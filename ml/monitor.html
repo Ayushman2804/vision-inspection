@@ -107,7 +107,9 @@ function render(run, base, done) {
   const last = run[run.length - 1];
   const best = run.reduce((m, r) => (r['metrics/mAP50(B)'] > m['metrics/mAP50(B)'] ? r : m), run[0]);
   const baseBest = base.length ? Math.max(...pick(base, 'metrics/mAP50(B)')) : NaN;
-  const perEpoch = last.time / last.epoch;
+  // Ultralytics resets `time` when a run is resumed, so use the median gap between recent epochs.
+  const gaps = run.slice(-8).map((r, i, a) => (i ? r.time - a[i - 1].time : NaN)).filter((g) => g > 0).sort((x, y) => x - y);
+  const perEpoch = gaps.length ? gaps[Math.floor(gaps.length / 2)] : last.time / last.epoch;
   const left = Math.max(0, TOTAL - last.epoch);
   document.getElementById('k-epoch').textContent = `${last.epoch} / ${TOTAL}`;
   document.getElementById('k-bar').style.width = `${Math.min(100, (last.epoch / TOTAL) * 100)}%`;

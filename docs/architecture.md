@@ -76,6 +76,7 @@ Detector choice at startup: `MOCK_MODE=true` → `MockDetector`; else `MODEL_PAT
 | gateway | `CORS_ORIGINS` | http://localhost:5173 | comma-separated |
 | gateway | `UPLOAD_DIR` | ./uploads | ephemeral on Cloud Run |
 | gateway | `ALERT_WINDOW` / `ALERT_THRESHOLD` / `ALERT_COOLDOWN_SEC` | 20 / 0.5 / 60 | |
+| gateway (tests) | `REQUIRE_DB` | unset | `1` makes the Postgres-backed tests fail instead of skipping when the DB is unreachable (CI sets it) |
 | inference | `MODEL_PATH` / `LABELS_PATH` | models/best.onnx / models/labels.json | |
 | inference | `MODEL_VERSION` | yolo26n-neu-det-v1 | |
 | inference | `MOCK_MODE` | false | wins over the model file |
