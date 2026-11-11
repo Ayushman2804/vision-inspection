@@ -54,10 +54,13 @@ Template:
 
 **Did (later)**
 - Inspection history API: Live frames with a defect now keep their image (`SAVE_VIDEO_FRAMES`, default `defects`); `GET`/`DELETE /api/inspections/:id`; `GET /api/inspections/export.csv`; `from`/`to` filters; `npm run cleanup-uploads`. Gateway tests 14/14 inside the container against Postgres (`REQUIRE_DB=1`). End to end against the running stack: 6 real video frames with defects stored with images, get 200, delete 204, CSV download OK; test rows deleted afterwards. Cleanup dry-run: 124 of 160 files on disk are orphaned (1.8 MB), not deleted yet.
+- Inspection history UI on `feat/history-ui` (frontend only, against the new gateway history API): From/To date filters, Export CSV, `/history/:id` detail dialog with image and boxes, delete with a confirmation step, thumbnails for video frames, Live note. Checked in the browser against the running stack: To=today included today's 48 rows, To=yesterday gave 120, none gave 168; export with Result=fail returned 168 rows; a stubbed truncated export showed the note, a stubbed 503 showed Retry; detail opened from a row click and its # link, Esc closed it back to the list with filters kept; a direct URL to a deleted id showed "not found" with no Retry; deleting a test upload removed the row (169 → 168), made the image and detail 404, and the Dashboard open in another tab refetched 60 ms later; no horizontal overflow at 360 px for the list or the dialog. Both test inspections were deleted afterwards.
 
 **Decided**
 - Video frames keep their image only when the model finds a defect: those are the ones worth reviewing, and ~3 fps of passing frames would fill the disk.
 - Upload cleanup is a CLI script, not an API route: files are shared across users and every route is user-scoped.
+- History detail is a dialog on the optional route `/history/:id?`, not a separate page: the list stays mounted under it, so filters, page and scroll survive, a deleted row can vanish immediately, and the detail still has its own link.
+- Delete asks in place (Delete → "This can't be undone" → Delete / Cancel) rather than through `window.confirm`, so the prompt names what goes (the row and its stored image).
 - The new-inspection signal is also broadcast to other tabs (BroadcastChannel). Only one page is mounted per tab, so an in-tab context alone would almost never reach an "already open" History page.
 - History on phones: cards rather than a horizontally scrolling table.
 - Recharts animations off on the Dashboard so a poll with new numbers doesn't replay the draw-in.

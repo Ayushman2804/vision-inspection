@@ -16,7 +16,7 @@ PostgreSQL  (users, inspections, defects, alerts)
 
 | Service | Responsibility | Key files |
 |---|---|---|
-| frontend | Login, dashboard charts, live video sampling, upload, history | `frontend/src/api.js`, `frontend/src/pages/*.jsx`, `frontend/src/components/BBoxCanvas.jsx`, `frontend/src/draw.js` |
+| frontend | Login, dashboard charts, live video sampling, upload, history (filters, CSV export, `/history/:id` detail dialog with delete) | `frontend/src/api.js`, `frontend/src/pages/*.jsx`, `frontend/src/components/BBoxCanvas.jsx`, `frontend/src/draw.js` |
 | gateway | Auth, rate limits, image validation, persistence, alert rule, stats | `gateway/src/app.js`, `routes/{auth,inspect,stats}.js`, `services/{inference,alerts}.js` |
 | inference | Decode image, letterbox to 640, run ONNX, NMS (only for raw-head models; YOLO26 end2end skips it), scale boxes back | `inference/app/main.py`, `inference/app/detector.py` |
 | ml | Data prep, training, ONNX export, parity check, benchmark, demo video | `ml/*.py` (offline, not deployed) |

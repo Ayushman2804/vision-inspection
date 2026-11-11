@@ -37,12 +37,68 @@ async function request(path, { method = 'GET', body, form, signal } = {}) {
     throw new ApiError('Could not reach the server. Check your connection.', 0);
   }
   const data = await res.json().catch(() => ({}));
+  signOutOn401(res, token);
+  if (!res.ok) throw new ApiError(data.error || `Request failed (${res.status})`, res.status);
+  return data;
+}
+
+/** A 401 with a token means the session expired: drop it and send the app back to the login page. */
+function signOutOn401(res, token) {
   if (res.status === 401 && token) {
     setToken(null);
     window.dispatchEvent(new Event('auth:logout'));
   }
-  if (!res.ok) throw new ApiError(data.error || `Request failed (${res.status})`, res.status);
-  return data;
+}
+
+/** Filename from a Content-Disposition header (RFC 6266 `filename*` or plain `filename`). */
+function dispositionFilename(header) {
+  if (!header) return null;
+  const star = /filename\*\s*=\s*(?:UTF-8|utf-8)''([^;]+)/.exec(header);
+  if (star) {
+    try {
+      return decodeURIComponent(star[1].trim());
+    } catch {
+      /* fall through to the plain form */
+    }
+  }
+  const plain = /filename\s*=\s*"?([^";]+)"?/i.exec(header);
+  return plain ? plain[1].trim() : null;
+}
+
+/**
+ * Download the filtered history as CSV. Not routed through request(), which parses JSON:
+ * reads the body as a blob and saves it through a temporary object URL.
+ * Returns { truncated, rows } from the X-Truncated / X-Total-Rows headers.
+ */
+async function exportCsv(params = {}) {
+  const token = getToken();
+  let res;
+  try {
+    res = await fetch(`${BASE}/api/inspections/export.csv?${qs(params)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  } catch {
+    throw new ApiError('Could not reach the server. Check your connection.', 0);
+  }
+  signOutOn401(res, token);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error || `Export failed (${res.status})`, res.status);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = dispositionFilename(res.headers.get('Content-Disposition')) || 'inspections.csv';
+  document.body.append(a);
+  a.click();
+  a.remove();
+  // Revoke after the click has handed the blob to the download (immediate revoke can cancel it in Firefox).
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return {
+    truncated: res.headers.get('X-Truncated') === 'true',
+    rows: Number(res.headers.get('X-Total-Rows')) || 0,
+  };
 }
 
 const qs = (params) => {
@@ -62,6 +118,10 @@ export const api = {
     return request('/api/inspect', { method: 'POST', form });
   },
   history: (params, opts) => request(`/api/inspections?${qs(params)}`, opts),
+  inspection: (id, opts) => request(`/api/inspections/${encodeURIComponent(id)}`, opts),
+  // 204 with an empty body: request() falls back to {}.
+  deleteInspection: (id) => request(`/api/inspections/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  exportCsv,
   stats: (days, opts) => request(`/api/stats?days=${days}`, opts),
   alerts: (opts) => request('/api/alerts', opts),
 };

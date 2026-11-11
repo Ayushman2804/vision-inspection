@@ -55,7 +55,8 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/live" element={<Live />} />
               <Route path="/upload" element={<Upload />} />
-              <Route path="/history" element={<History />} />
+              {/* Optional :id opens the detail dialog over the list, so the list keeps its filters and page. */}
+              <Route path="/history/:id?" element={<History />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

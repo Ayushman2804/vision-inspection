@@ -16,6 +16,14 @@
 - `GET /api/inspections/export.csv`: the filtered history as CSV (same filters as the list, up to 50,000 rows; `X-Truncated` says if more matched). Cells that look like spreadsheet formulas are prefixed with `'`.
 - History filters gain `from` / `to` (ISO dates) on both the list and the export. Defects in list and detail responses are sorted by confidence, highest first.
 - `npm run cleanup-uploads` deletes image files no inspection points to (`--dry-run`, `--grace-minutes`, `--prune-video-days N` to drop old video-frame images). `POST /api/inspect` now removes the saved image if the DB insert fails.
+### Inspection history in the UI
+- History filters by date: From / To date pickers (To is inclusive; sent as the next day's 00:00 local time).
+- "Export CSV" downloads the filtered history (`GET /api/inspections/export.csv`) with a spinner while it runs and a note when the export was cut off at 50,000 rows.
+- Clicking a row (or its #) opens the inspection at `/history/:id` in a dialog over the list: the image with its boxes, the defect list (highest confidence first), source, latency, model version and time. A missing or someone else's inspection shows "not found".
+- Delete from the detail dialog after a confirmation step; removes the inspection and its stored image (`DELETE /api/inspections/:id`). The row disappears and the total updates at once, and Dashboard and other tabs refetch through the existing new-inspection signal.
+- Thumbnails for every row with a stored image, video frames included; the Live page says that frames with a defect are saved to History.
+- `api.js`: `inspection(id)`, `deleteInspection(id)`, `exportCsv(params)` (fetches on its own because the response is CSV; same 401 sign-out and `ApiError` as other calls).
+- Needs the gateway's inspection history API (detail, delete, CSV export, `from` / `to`).
 
 ## 2026-11-10: PR #3 (5c98614) and PR #2 merged
 

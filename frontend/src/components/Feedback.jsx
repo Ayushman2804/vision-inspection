@@ -33,6 +33,7 @@ export function ErrorNotice({ error, onRetry, busy = false, children }) {
   );
 }
 
-export function Spinner({ label = 'Loading' }) {
-  return <span className="spinner" role="status" aria-label={label} />;
+/** `small` fits inside a button or a line of text. */
+export function Spinner({ label = 'Loading', small = false }) {
+  return <span className={`spinner${small ? ' small' : ''}`} role="status" aria-label={label} />;
 }
