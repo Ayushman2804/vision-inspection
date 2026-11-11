@@ -17,6 +17,7 @@ Last updated: 2026-11-10
 | 7a | Frontend resilience (skeletons, retry, live sync, phone layout) and zero-filled stats timeline | Done; PR #2 merged |
 | 7b | UI redesign (sidebar layout, icons, floating action button) | In review: PR #4 |
 | 8a | Experiment: NEU-DET + GC10-DET combined 16-class model | Done, not shipped (NEU-DET tie: 0.747 vs 0.739 mAP@0.5; GC10 0.689); recorded in PR #3 (5c98614) |
+| 7c | Inspection history API: keep defective video frames, get/delete one inspection, CSV export, upload cleanup script | In review: PR on `feat/inspection-history-api`; frontend not wired yet |
 | 9 | Human review queue and retraining export | Not started |
 
 ## Where things stand
@@ -43,7 +44,7 @@ Last updated: 2026-11-10
 - `npm audit` (gateway, frontend) and `pip-audit` (inference): 0 known vulnerabilities.
 - `scripts/e2e_check.js` 27/27 with `NODE_ENV=production` and the frontend on a separate origin; signed in and loaded History images cross-origin in the browser with no console errors; CORS only answers the configured origin.
 - Inference container ~175 MiB under load, ready ~1.5 s after start (first predict 86 ms, then 44 ms); gateway ~46 MiB, ~1.2 s.
-- Fixed on `fix/predeploy-hardening`: verified DB TLS, pinned inference deps, 400 for undecodable images, `ALLOW_REGISTRATION`.
+- Fixed in PR #7 (merged, e28a009): verified DB TLS, pinned inference deps, 400 for undecodable images, `ALLOW_REGISTRATION`.
 - Not covered: PRs #5/#6 (open), and Neon TLS, private Cloud Run auth and real latency, which need the accounts.
 
 ## Known issues
@@ -55,6 +56,7 @@ Last updated: 2026-11-10
 
 ## Next up
 
+0. Wire the new history endpoints into the frontend (History: detail view, delete, Export CSV, date range; Live: note that defective frames are saved).
 1. Run `scripts/e2e_check.js` in CI with a Postgres service container.
 2. Deploy (milestone 8) and replace the 80–120 ms Cloud Run estimate with a measurement.
 3. Move uploads to object storage with signed URLs.

@@ -52,7 +52,12 @@ Template:
 - Trained a combined YOLO26n (early stop at epoch 78). NEU-DET: mAP@0.5 0.747 vs 0.739 shipped, mAP@0.5:0.95 0.395 vs 0.404; GC10-DET test 0.689; parity 50/50; CPU p50 32.6 vs 30.3 ms.
 - Recorded the experiment as PR #3 and merged it (5c98614). That conflicted PR #2 on the shared docs (CHANGELOG, devlog); PR #2's session merged `main` in (44797fc), CI green again, then PR #2 merged too. CHANGELOG now has dated sections for both.
 
+**Did (later)**
+- Inspection history API: Live frames with a defect now keep their image (`SAVE_VIDEO_FRAMES`, default `defects`); `GET`/`DELETE /api/inspections/:id`; `GET /api/inspections/export.csv`; `from`/`to` filters; `npm run cleanup-uploads`. Gateway tests 14/14 inside the container against Postgres (`REQUIRE_DB=1`). End to end against the running stack: 6 real video frames with defects stored with images, get 200, delete 204, CSV download OK; test rows deleted afterwards. Cleanup dry-run: 124 of 160 files on disk are orphaned (1.8 MB), not deleted yet.
+
 **Decided**
+- Video frames keep their image only when the model finds a defect: those are the ones worth reviewing, and ~3 fps of passing frames would fill the disk.
+- Upload cleanup is a CLI script, not an API route: files are shared across users and every route is user-scoped.
 - The new-inspection signal is also broadcast to other tabs (BroadcastChannel). Only one page is mounted per tab, so an in-tab context alone would almost never reach an "already open" History page.
 - History on phones: cards rather than a horizontally scrolling table.
 - Recharts animations off on the Dashboard so a poll with new numbers doesn't replay the draw-in.

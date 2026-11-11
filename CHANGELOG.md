@@ -9,6 +9,14 @@
 - `inference/requirements.txt` pins exact versions (FastAPI 0.162.2, ONNX Runtime 1.31.1, OpenCV 5.0.0.93, NumPy 2.5.4, ...), so Docker and Cloud Run builds match what was tested.
 - README deploy step: inference at 512 MiB with `--max-instances 2` (measured ~175 MiB, ~1.5 s cold start locally).
 
+### Inspection history API
+- Live video frames now keep their image when the model finds a defect (`SAVE_VIDEO_FRAMES=defects`, the default; `none` restores the old behaviour, `all` keeps every frame). Uploads are always kept.
+- `GET /api/inspections/:id`: one inspection with its defects (404 for another user's).
+- `DELETE /api/inspections/:id`: deletes the inspection, its defects and its stored image (204).
+- `GET /api/inspections/export.csv`: the filtered history as CSV (same filters as the list, up to 50,000 rows; `X-Truncated` says if more matched). Cells that look like spreadsheet formulas are prefixed with `'`.
+- History filters gain `from` / `to` (ISO dates) on both the list and the export. Defects in list and detail responses are sorted by confidence, highest first.
+- `npm run cleanup-uploads` deletes image files no inspection points to (`--dry-run`, `--grace-minutes`, `--prune-video-days N` to drop old video-frame images). `POST /api/inspect` now removes the saved image if the DB insert fails.
+
 ## 2026-11-10: PR #3 (5c98614) and PR #2 merged
 
 ### Dashboard resilience and phone layout
