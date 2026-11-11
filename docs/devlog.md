@@ -24,7 +24,8 @@ Template:
 **Did**
 - Pre-deploy checks on `main` (4fc207e) in a separate production-mode Compose stack (`NODE_ENV=production`, random `JWT_SECRET`, frontend on its own origin): dependency audits clean, e2e 27/27, cross-origin browser check, CORS, error responses, security headers, upload size limit.
 - Measured containers: inference ~175 MiB and ~1.5 s to ready, gateway ~46 MiB and ~1.2 s; images 669 / 262 / 96 MB.
-- Fixed what the checks found (branch `fix/predeploy-hardening`): DB TLS certificate now verified, inference deps pinned, undecodable images get 400 instead of 502 with internal detail, `ALLOW_REGISTRATION` switch. Gateway 11 pass + 2 DB-only skips locally, inference 8/8 on the pinned image, e2e 27/27.
+- Fixed what the checks found (branch `fix/predeploy-hardening`): DB TLS certificate now verified, inference deps pinned, undecodable images get 400 instead of 502 with internal detail, `ALLOW_REGISTRATION` switch. Gateway 11 pass + 2 DB-only skips locally, inference 8/8 on the pinned image, e2e 27/27. Merged as PR #7 (e28a009).
+- PR #5 conflicted with #7 on docs and `.env.example`; merged `main` into it keeping both sides. `scripts/e2e_check.js` still expected video frames to never keep an image, which #5 changed on purpose; updated the assertion. Gateway 18/18 against Postgres, e2e 27/27. Merged #5 (74a71fe), retargeted #6 to `main`, merged `main` into it, CI green, merged #6 (1781795).
 
 **Decided**
 - `DB_SSL=true` means verified TLS; `no-verify` is opt-in for providers with a private CA.
@@ -32,11 +33,11 @@ Template:
 - Pin the inference Python deps exactly; bump them on purpose with tests, parity check and e2e.
 
 **Open / blocked**
-- PRs #5/#6 (history API and page) are open; rerun e2e after they merge.
+- PR #4 (UI redesign) was closed unmerged; decide whether to bring it back.
 - Deployment plan drafted (Neon + Cloud Run + Vercel), paused.
 
 **Next**
-- Merge the hardening PR, settle #5/#6, then deploy.
+- Deploy (plan drafted, paused).
 
 ## 2026-11-10
 
