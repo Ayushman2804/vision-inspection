@@ -3,6 +3,7 @@ NumPy post-processing, and NMS when the model doesn't do it itself."""
 from __future__ import annotations
 
 import json
+import os
 import random
 import time
 from pathlib import Path
@@ -122,13 +123,33 @@ def postprocess(output, ratio, pad_left, pad_top, orig_w, orig_h, conf_thres=0.2
     return dets
 
 
+def ort_threads_from_env(default: int = 1) -> int:
+    """ORT_THREADS: ONNX Runtime threads per session (intra and inter op). 0 lets ORT pick (one per
+    core; fine on a dedicated machine). Invalid or negative -> default."""
+    try:
+        n = int(os.getenv("ORT_THREADS", default))
+    except ValueError:
+        return default
+    return n if n >= 0 else default
+
+
+def session_options(threads: int) -> ort.SessionOptions:
+    """Fixed thread pools. ORT defaults to one thread per core, which on a shared fractional vCPU
+    (Render free, Cloud Run) thrashes and costs memory; one thread is steadier there."""
+    so = ort.SessionOptions()
+    so.intra_op_num_threads = threads
+    so.inter_op_num_threads = threads
+    return so
+
+
 class Detector:
     def __init__(self, model_path: str, labels_path: str | None = None, model_version: str = "unknown",
-                 providers: list[str] | None = None):
+                 providers: list[str] | None = None, threads: int | None = None):
         if providers is None:  # default: CUDA when available, else CPU
             available = ort.get_available_providers()
             providers = [p for p in ("CUDAExecutionProvider", "CPUExecutionProvider") if p in available]
-        self.session = ort.InferenceSession(model_path, providers=providers)
+        self.threads = threads if threads is not None else ort_threads_from_env()
+        self.session = ort.InferenceSession(model_path, sess_options=session_options(self.threads), providers=providers)
         inp = self.session.get_inputs()[0]
         self.input_name = inp.name
         self.imgsz = int(inp.shape[2]) if isinstance(inp.shape[2], int) else 640

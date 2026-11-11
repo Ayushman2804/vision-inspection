@@ -10,6 +10,8 @@ export const config = {
   // false closes sign-up (POST /api/auth/register returns 403); existing accounts can still sign in.
   allowRegistration: (process.env.ALLOW_REGISTRATION || 'true').trim().toLowerCase() !== 'false',
   inferenceUrl: (process.env.INFERENCE_URL || 'http://localhost:8000').replace(/\/$/, ''),
+  // Per-request timeout to the inference service. Raise it on hosts with slow cold starts (Render free).
+  inferenceTimeoutMs: Number(process.env.INFERENCE_TIMEOUT_MS || 30_000),
   corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((s) => s.trim()),
   uploadDir: process.env.UPLOAD_DIR || './uploads',
   // Which Live video frames keep their image: none | defects (failed frames only) | all. Uploads always keep theirs.

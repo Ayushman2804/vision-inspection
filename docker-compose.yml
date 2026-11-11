@@ -19,6 +19,8 @@ services:
       MODEL_VERSION: ${MODEL_VERSION:-yolo26n-neu-det-v1}
       # MOCK_MODE=true returns random boxes for UI work; it takes precedence over models/best.onnx
       MOCK_MODE: ${MOCK_MODE:-false}
+      # ONNX Runtime threads. 0 = one per core (local machine); hosted free tiers use 1 (render.yaml)
+      ORT_THREADS: ${ORT_THREADS:-0}
     ports:
       - "8000:8000"
 

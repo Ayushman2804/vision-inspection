@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { config } from './config.js';
 import { pool } from './db.js';
+import { pingInference } from './services/inference.js';
 import authRoutes from './routes/auth.js';
 import inspectRoutes from './routes/inspect.js';
 import statsRoutes from './routes/stats.js';
@@ -19,13 +20,19 @@ export function createApp() {
 
   app.use('/uploads', express.static(config.uploadDir, { maxAge: '1d' }));
 
+  // Gateway health is the DB only, so a sleeping inference service never fails the host's health
+  // check. It also wakes inference (non-blocking: waits at most ~1.5 s) and reports what it knows.
   app.get('/api/health', async (_req, res) => {
+    const ping = pingInference();
+    let db = true;
     try {
       await pool.query('SELECT 1');
-      res.json({ status: 'ok' });
     } catch {
-      res.status(503).json({ status: 'db_unavailable' });
+      db = false;
     }
+    const inference = await Promise.race([ping, new Promise((r) => setTimeout(r, 1500, 'waking'))]);
+    if (!db) return res.status(503).json({ status: 'db_unavailable', inference });
+    res.json({ status: 'ok', inference });
   });
 
   const authLimiter = rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: true, legacyHeaders: false });

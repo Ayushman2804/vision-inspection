@@ -44,7 +44,7 @@ PostgreSQL  (users, inspections, defects, alerts)
 | DELETE | `/api/inspections/:id` | JWT | deletes row, defects (cascade) and image file; 204 |
 | GET | `/api/stats?days=N` | JWT | N 1–90; hourly buckets when N ≤ 2, else daily; every bucket in the range is returned (empty ones as 0) |
 | GET | `/api/alerts` | JWT | last 50 |
-| GET | `/api/health` | – | DB `SELECT 1` |
+| GET | `/api/health` | – | DB `SELECT 1` decides the status (200 / 503). Also wakes inference: pings `/health` without blocking (waits ≤ 1.5 s) and reports `inference: ok / waking / not_ready / unreachable` |
 | GET | `/uploads/*` | – | static, 1 day cache |
 
 Global limit: 600 req/min per IP. Every query is scoped to the caller's `user_id`.
@@ -77,6 +77,7 @@ Detector choice at startup: `MOCK_MODE=true` → `MockDetector`; else `MODEL_PAT
 | gateway | `JWT_SECRET` | dev value | startup fails in production if unset |
 | gateway | `ALLOW_REGISTRATION` | true | `false` makes `POST /api/auth/register` return 403; existing accounts can still sign in |
 | gateway | `INFERENCE_URL` | http://localhost:8000 | |
+| gateway | `INFERENCE_TIMEOUT_MS` | 30000 | per call to inference; render.yaml uses 90000 for cold starts |
 | gateway | `CORS_ORIGINS` | http://localhost:5173 | comma-separated |
 | gateway | `UPLOAD_DIR` | ./uploads | ephemeral on Cloud Run |
 | gateway | `SAVE_VIDEO_FRAMES` | defects | which Live frames keep their image: `none`, `defects`, `all` |
@@ -85,6 +86,7 @@ Detector choice at startup: `MOCK_MODE=true` → `MockDetector`; else `MODEL_PAT
 | inference | `MODEL_PATH` / `LABELS_PATH` | models/best.onnx / models/labels.json | |
 | inference | `MODEL_VERSION` | yolo26n-neu-det-v1 | |
 | inference | `MOCK_MODE` | false | wins over the model file |
+| inference | `ORT_THREADS` | 1 | ONNX Runtime intra/inter-op threads; 0 = one per core (docker-compose sets 0); 1 for shared fractional CPUs (Render free) |
 | inference | `PORT` | 8000 | Docker only |
 | frontend | `VITE_API_URL` | http://localhost:4000 | build-time |
 

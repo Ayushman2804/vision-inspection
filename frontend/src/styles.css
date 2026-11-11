@@ -145,3 +145,8 @@ button.danger { background: var(--fail); color: #1a0606; align-self: flex-start;
   .detail-grid { grid-template-columns: 1fr; }
   .detail { padding: 12px; }
 }
+
+/* Cold-start notice (hosted free tiers sleep when idle; see wake.js). */
+.wake-notice { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 8px 16px; background: #1e2b47; color: var(--text); font-size: 14px; border-bottom: 1px solid var(--border); text-align: center; }
+.waking-text { margin: 0; padding: 0 16px; text-align: center; font-weight: 600; }

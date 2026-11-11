@@ -6,6 +6,7 @@ import { useNotifyInspection } from '../inspectionSignal.jsx';
 const FPS = 3; // frames sampled per second and sent for inference
 const MAX_FAILURES = 3; // consecutive failed frames before sampling pauses
 const FRAME_WIDTH = 640;
+const RATE_WINDOW_MS = 5000; // effective frame rate is measured over this sliding window
 
 export default function Live() {
   const videoRef = useRef(null);
@@ -15,7 +16,10 @@ export default function Live() {
 
   const [src, setSrc] = useState(null);
   const [conf, setConf] = useState(0.25);
-  const [stats, setStats] = useState({ frames: 0, fails: 0, latency: 0, lastDetections: [] });
+  const [stats, setStats] = useState({ frames: 0, fails: 0, latency: 0, roundTrip: 0, lastDetections: [] });
+  // Completion times of recent frames; the single-flight guard means slow round trips lower this below FPS.
+  const doneAt = useRef([]);
+  const [fps, setFps] = useState(0);
   const [alert, setAlert] = useState(null);
   const [error, setError] = useState(''); // video load errors
   const [failure, setFailure] = useState(null); // { error, count, paused } for inference calls
@@ -42,7 +46,10 @@ export default function Live() {
       cap.height = Math.round((video.videoHeight / video.videoWidth) * FRAME_WIDTH);
       cap.getContext('2d').drawImage(video, 0, 0, cap.width, cap.height);
       const blob = await new Promise((resolve) => cap.toBlob(resolve, 'image/jpeg', 0.8));
+      const sentAt = performance.now();
       const res = await api.inspect(blob, { conf, source: 'video' });
+      const roundTrip = performance.now() - sentAt;
+      doneAt.current.push(performance.now());
 
       const overlay = overlayRef.current;
       overlay.width = res.image.width;
@@ -57,6 +64,7 @@ export default function Live() {
           frames,
           fails: s.fails + (res.inspection.status === 'fail' ? 1 : 0),
           latency: s.latency + (res.inspection.latency_ms - s.latency) / frames,
+          roundTrip: s.roundTrip + (roundTrip - s.roundTrip) / frames,
           lastDetections: res.detections,
         };
       });
@@ -91,6 +99,18 @@ export default function Live() {
     return () => clearInterval(id);
   }, [tick]);
 
+  // Effective rate = frames completed in the last RATE_WINDOW_MS (or since the first one, if sooner).
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = performance.now();
+      const recent = doneAt.current.filter((t) => now - t <= RATE_WINDOW_MS);
+      doneAt.current = recent;
+      const span = recent.length > 1 ? Math.max(1000, now - recent[0]) : RATE_WINDOW_MS;
+      setFps(recent.length ? recent.length / (span / 1000) : 0);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     if (!alert) return undefined;
     const id = setTimeout(() => setAlert(null), 8000);
@@ -102,7 +122,9 @@ export default function Live() {
     pausedRef.current = false;
     setFailure(null);
     setError('');
-    setStats({ frames: 0, fails: 0, latency: 0, lastDetections: [] });
+    setStats({ frames: 0, fails: 0, latency: 0, roundTrip: 0, lastDetections: [] });
+    doneAt.current = [];
+    setFps(0);
     const o = overlayRef.current;
     if (o) o.getContext('2d').clearRect(0, 0, o.width, o.height);
   }
@@ -198,6 +220,14 @@ export default function Live() {
           <div>
             <span className="stat">{stats.latency.toFixed(0)} ms</span>
             <span className="muted">avg model latency</span>
+          </div>
+          <div>
+            <span className="stat">{stats.roundTrip.toFixed(0)} ms</span>
+            <span className="muted">avg round trip</span>
+          </div>
+          <div>
+            <span className="stat">{fps.toFixed(1)} fps</span>
+            <span className="muted">effective rate (target {FPS})</span>
           </div>
         </div>
         <h3>Current frame</h3>

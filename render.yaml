@@ -1,0 +1,55 @@
+# Render Blueprint: inference + gateway as free Docker web services (Singapore, next to the Neon DB).
+# Free web services: 512 MB RAM, a fraction of a vCPU, spin down after 15 min idle (~1 min to wake).
+# Postgres is Neon, not Render (Render's free Postgres expires). The frontend is on Vercel.
+#
+# Secrets are `sync: false`: Render asks for them when the Blueprint is created and they never live in git.
+# Do not add a keep-alive pinger: the 750 free instance-hours/month are shared by both services.
+services:
+  - type: web
+    name: steel-inference
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./inference/Dockerfile
+    dockerContext: ./inference
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - inference/**
+    envVars:
+      - key: MODEL_VERSION
+        value: yolo26n-neu-det-v1
+      # One ONNX Runtime thread: the default (one per core) thrashes on a shared fractional vCPU.
+      - key: ORT_THREADS
+        value: "1"
+
+  - type: web
+    name: steel-gateway
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./gateway/Dockerfile
+    dockerContext: ./gateway
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - gateway/**
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Verified TLS (Neon's certificates are publicly trusted).
+      - key: DB_SSL
+        value: "true"
+      - key: DATABASE_URL # Neon pooled connection string
+        sync: false
+      - key: JWT_SECRET # long random string
+        sync: false
+      - key: INFERENCE_URL # https://<steel-inference>.onrender.com
+        sync: false
+      - key: CORS_ORIGINS # the Vercel URL (comma-separate several)
+        sync: false
+      # A cold inference service can take about a minute to answer the first request.
+      - key: INFERENCE_TIMEOUT_MS
+        value: "90000"
+      - key: ALLOW_REGISTRATION
+        value: "true"

@@ -1,3 +1,5 @@
+import { isWaking, SLOW_MS, trackSlow, WAKING_MESSAGE } from './wake.js';
+
 const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
 
 export const apiBase = BASE;
@@ -18,6 +20,22 @@ export class ApiError extends Error {
   }
 }
 
+/** Statuses a sleeping host or a still-starting upstream produces (no response, bad gateway, unavailable, timeout). */
+const COLD_STATUSES = new Set([0, 502, 503, 504]);
+
+/**
+ * Error for a failed response. When the failure looks like a cold start (a cold-type status while the
+ * server is known to be waking, or after the request itself was slow), say so instead of a generic error.
+ */
+function apiError(message, status, startedAt) {
+  if (COLD_STATUSES.has(status) && (isWaking() || performance.now() - startedAt > SLOW_MS)) {
+    const e = new ApiError(WAKING_MESSAGE, status);
+    e.waking = true;
+    return e;
+  }
+  return new ApiError(message, status);
+}
+
 async function request(path, { method = 'GET', body, form, signal } = {}) {
   const headers = {};
   const token = getToken();
@@ -29,16 +47,17 @@ async function request(path, { method = 'GET', body, form, signal } = {}) {
     headers['Content-Type'] = 'application/json';
     payload = JSON.stringify(body);
   }
+  const startedAt = performance.now();
   let res;
   try {
-    res = await fetch(`${BASE}${path}`, { method, headers, body: payload, signal });
+    res = await trackSlow(fetch(`${BASE}${path}`, { method, headers, body: payload, signal }));
   } catch (e) {
     if (e.name === 'AbortError') throw e;
-    throw new ApiError('Could not reach the server. Check your connection.', 0);
+    throw apiError('Could not reach the server. Check your connection.', 0, startedAt);
   }
   const data = await res.json().catch(() => ({}));
   signOutOn401(res, token);
-  if (!res.ok) throw new ApiError(data.error || `Request failed (${res.status})`, res.status);
+  if (!res.ok) throw apiError(data.error || `Request failed (${res.status})`, res.status, startedAt);
   return data;
 }
 
@@ -72,18 +91,21 @@ function dispositionFilename(header) {
  */
 async function exportCsv(params = {}) {
   const token = getToken();
+  const startedAt = performance.now();
   let res;
   try {
-    res = await fetch(`${BASE}/api/inspections/export.csv?${qs(params)}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    res = await trackSlow(
+      fetch(`${BASE}/api/inspections/export.csv?${qs(params)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }),
+    );
   } catch {
-    throw new ApiError('Could not reach the server. Check your connection.', 0);
+    throw apiError('Could not reach the server. Check your connection.', 0, startedAt);
   }
   signOutOn401(res, token);
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new ApiError(data.error || `Export failed (${res.status})`, res.status);
+    throw apiError(data.error || `Export failed (${res.status})`, res.status, startedAt);
   }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);

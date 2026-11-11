@@ -73,3 +73,19 @@ def test_postprocess_end2end_maps_coords_and_skips_nms():
 
 def test_postprocess_end2end_empty_padding_rows():
     assert postprocess(_end2end_output([]), 1.0, 0, 0, 640, 640, conf_thres=0.25) == []
+
+
+def test_ort_threads_from_env(monkeypatch):
+    from app.detector import ort_threads_from_env, session_options
+
+    monkeypatch.delenv("ORT_THREADS", raising=False)
+    assert ort_threads_from_env() == 1
+    monkeypatch.setenv("ORT_THREADS", "4")
+    assert ort_threads_from_env() == 4
+    monkeypatch.setenv("ORT_THREADS", "0")  # ORT's own default (one thread per core)
+    assert ort_threads_from_env() == 0
+    for bad in ("-2", "many", ""):
+        monkeypatch.setenv("ORT_THREADS", bad)
+        assert ort_threads_from_env() == 1
+    so = session_options(2)
+    assert so.intra_op_num_threads == 2 and so.inter_op_num_threads == 2

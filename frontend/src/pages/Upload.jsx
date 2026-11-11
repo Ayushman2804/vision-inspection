@@ -4,8 +4,10 @@ import BBoxCanvas from '../components/BBoxCanvas.jsx';
 import { ErrorNotice, Spinner } from '../components/Feedback.jsx';
 import { colorFor } from '../draw.js';
 import { useNotifyInspection } from '../inspectionSignal.jsx';
+import { useServerWaking, WAKING_MESSAGE } from '../wake.js';
 
 export default function Upload() {
+  const waking = useServerWaking();
   const notifyInspection = useNotifyInspection();
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -73,7 +75,7 @@ export default function Upload() {
             )}
             {busy && (
               <div className="busy-overlay">
-                <Spinner label="Analyzing" />
+                {waking ? <p className="waking-text">{WAKING_MESSAGE}</p> : <Spinner label="Analyzing" />}
               </div>
             )}
           </div>

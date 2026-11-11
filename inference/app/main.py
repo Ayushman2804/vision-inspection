@@ -40,6 +40,7 @@ def health():
         "model_loaded": det is not None,
         "model_version": getattr(det, "model_version", None),
         "labels": getattr(det, "labels", None),
+        "ort_threads": getattr(det, "threads", None),
     }
 
 

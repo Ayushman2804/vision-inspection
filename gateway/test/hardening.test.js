@@ -82,3 +82,22 @@ test('ALLOW_REGISTRATION=false closes sign-up with 403', async () => {
     config.allowRegistration = saved;
   }
 });
+
+test('health wakes inference and reports its state without failing on it', async () => {
+  const saved = config.inferenceUrl;
+  try {
+    // The fake answers 200 without model_loaded: reachable but not ready.
+    config.inferenceUrl = `http://127.0.0.1:${fakeInference.address().port}`;
+    let body = await (await fetch(`${base}/api/health`)).json();
+    assert.equal(body.inference, 'not_ready');
+
+    // Nothing listening: unreachable. The gateway's own status depends only on the DB.
+    config.inferenceUrl = 'http://127.0.0.1:9';
+    const res = await fetch(`${base}/api/health`);
+    body = await res.json();
+    assert.equal(body.inference, 'unreachable');
+    assert.equal(res.status, body.status === 'ok' ? 200 : 503);
+  } finally {
+    config.inferenceUrl = saved;
+  }
+});

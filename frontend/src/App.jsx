@@ -1,9 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router';
-import { getToken, setToken } from './api.js';
-import { Spinner } from './components/Feedback.jsx';
+import { apiBase, getToken, setToken } from './api.js';
+import { Spinner, WakeNotice } from './components/Feedback.jsx';
 import { InspectionSignalProvider } from './inspectionSignal.jsx';
 import Login from './pages/Login.jsx';
+import { warmUp } from './wake.js';
 
 // Split per page so the chart library (Recharts) only loads with the Dashboard.
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
@@ -14,17 +15,27 @@ const Upload = lazy(() => import('./pages/Upload.jsx'));
 export default function App() {
   const [authed, setAuthed] = useState(Boolean(getToken()));
 
+  // Wake gateway and inference as soon as the app opens (hosted free tiers sleep when idle).
+  useEffect(() => warmUp(apiBase), []);
+
   useEffect(() => {
     const onLogout = () => setAuthed(false);
     window.addEventListener('auth:logout', onLogout);
     return () => window.removeEventListener('auth:logout', onLogout);
   }, []);
 
-  if (!authed) return <Login onAuth={() => setAuthed(true)} />;
+  if (!authed)
+    return (
+      <>
+        <WakeNotice />
+        <Login onAuth={() => setAuthed(true)} />
+      </>
+    );
 
   return (
     <InspectionSignalProvider>
       <BrowserRouter>
+        <WakeNotice />
         <header className="nav">
           <strong className="brand">Steel Defect Inspection</strong>
           <nav>

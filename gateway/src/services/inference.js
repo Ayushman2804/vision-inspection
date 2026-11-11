@@ -10,7 +10,7 @@ export async function runInference(buffer, mimetype, conf) {
     res = await fetch(`${config.inferenceUrl}/predict?conf=${conf}`, {
       method: 'POST',
       body: form,
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(config.inferenceTimeoutMs),
     });
   } catch {
     throw new HttpError(502, 'Inference service unreachable');
@@ -25,4 +25,27 @@ export async function runInference(buffer, mimetype, conf) {
     throw new HttpError(502, 'Inference service error');
   }
   return res.json();
+}
+
+/*
+ * Inference wake-up. On hosts that sleep idle services (Render free), the first request after idle
+ * waits for the inference container to start. /api/health calls pingInference() so that opening the
+ * app wakes inference while the user is still logging in. One ping at a time: concurrent callers share it.
+ */
+let pending = null;
+
+export function pingInference({ timeoutMs = config.inferenceTimeoutMs } = {}) {
+  if (!pending) {
+    pending = fetch(`${config.inferenceUrl}/health`, { signal: AbortSignal.timeout(timeoutMs) })
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        return res.ok && body.model_loaded ? 'ok' : 'not_ready';
+      })
+      .catch((e) => (e?.name === 'TimeoutError' ? 'waking' : 'unreachable'))
+      .then((status) => {
+        pending = null;
+        return status;
+      });
+  }
+  return pending;
 }

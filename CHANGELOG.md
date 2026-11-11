@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Free-tier deploy readiness (Render + Vercel + Neon)
+- Inference: ONNX Runtime thread pools are fixed by `ORT_THREADS` (default 1; 0 = one per core, which docker-compose uses locally). One thread avoids thrashing on a shared fractional vCPU. Locally (CPU, 200 NEU-DET val images): 1 thread p50 68 ms vs 30 ms with one thread per core (16 cores). `/health` reports `ort_threads`; `ml/benchmark.py --threads N`.
+- Cold starts: the app sends a non-blocking `GET /api/health` on load; the gateway's health check wakes inference too (without waiting on it, so a sleeping inference never fails the gateway's own health check). While the server is waking, or a request is slow (> 3 s) or fails on a cold service, the UI says "Waking the server, this can take up to a minute" instead of a spinner or a generic error.
+- Gateway: `INFERENCE_TIMEOUT_MS` (default 30 s) for calls to inference.
+- Live page: effective frame rate (completed frames over the last 5 s) and average round trip next to the model latency, so a slower host reads as a measured rate rather than a broken feature.
+- `render.yaml`: Blueprint for both services (Docker, free plan, Singapore, health checks `/health` and `/api/health`); `DATABASE_URL`, `JWT_SECRET`, `INFERENCE_URL` and `CORS_ORIGINS` are `sync: false`.
+
 ### Pre-deploy hardening
 - `DB_SSL=true` now verifies the database's TLS certificate (it previously accepted any certificate). `DB_SSL=no-verify` keeps the old behaviour for providers whose CA isn't publicly trusted.
 - `ALLOW_REGISTRATION=false` closes sign-up (`POST /api/auth/register` returns 403); default `true`.
