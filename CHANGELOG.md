@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Pre-deploy hardening
+- `DB_SSL=true` now verifies the database's TLS certificate (it previously accepted any certificate). `DB_SSL=no-verify` keeps the old behaviour for providers whose CA isn't publicly trusted.
+- `ALLOW_REGISTRATION=false` closes sign-up (`POST /api/auth/register` returns 403); default `true`.
+- `POST /api/inspect` returns 400 "Could not read the image" for files the model can't decode (was 502 with the inference service's internal message). Other inference failures return a generic 502; the detail goes to the server log.
+- `inference/requirements.txt` pins exact versions (FastAPI 0.162.2, ONNX Runtime 1.31.1, OpenCV 5.0.0.93, NumPy 2.5.4, ...), so Docker and Cloud Run builds match what was tested.
+- README deploy step: inference at 512 MiB with `--max-instances 2` (measured ~175 MiB, ~1.5 s cold start locally).
+
 ### Inspection history API
 - Live video frames now keep their image when the model finds a defect (`SAVE_VIDEO_FRAMES=defects`, the default; `none` restores the old behaviour, `all` keeps every frame). Uploads are always kept.
 - `GET /api/inspections/:id`: one inspection with its defects (404 for another user's).

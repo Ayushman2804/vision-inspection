@@ -5,8 +5,10 @@ const isProd = process.env.NODE_ENV === 'production';
 export const config = {
   port: Number(process.env.PORT || 4000),
   databaseUrl: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/inspection',
-  dbSsl: process.env.DB_SSL === 'true',
+  dbSsl: (process.env.DB_SSL || 'false').trim().toLowerCase(), // false | true (verified) | no-verify
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
+  // false closes sign-up (POST /api/auth/register returns 403); existing accounts can still sign in.
+  allowRegistration: (process.env.ALLOW_REGISTRATION || 'true').trim().toLowerCase() !== 'false',
   inferenceUrl: (process.env.INFERENCE_URL || 'http://localhost:8000').replace(/\/$/, ''),
   corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((s) => s.trim()),
   uploadDir: process.env.UPLOAD_DIR || './uploads',

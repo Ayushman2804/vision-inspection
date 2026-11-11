@@ -22,6 +22,7 @@ function validate(body) {
 router.post(
   '/register',
   async (req, res) => {
+    if (!config.allowRegistration) throw new HttpError(403, 'Registration is closed');
     const { email, password } = validate(req.body);
     const hash = await bcrypt.hash(password, 10);
     try {
