@@ -41,11 +41,20 @@ Last updated: 2026-11-10
 
 - PR #2 `feat/frontend-resilience` (2026-11-10, merged): skeletons, retry/resume, History/Dashboard sync with new inspections, phone layout, zero-filled stats timeline. Checked in the browser (mock API and the real stack); gateway 9/9 against Postgres, `scripts/e2e_check.js` 27/27.
 
+## Pre-deploy checks (2026-11-11, `main` at 4fc207e, production mode)
+
+- `npm audit` (gateway, frontend) and `pip-audit` (inference): 0 known vulnerabilities.
+- `scripts/e2e_check.js` 27/27 with `NODE_ENV=production` and the frontend on a separate origin; signed in and loaded History images cross-origin in the browser with no console errors; CORS only answers the configured origin.
+- Inference container ~175 MiB under load, ready ~1.5 s after start (first predict 86 ms, then 44 ms); gateway ~46 MiB, ~1.2 s.
+- Fixed in PR #7 (merged, e28a009): verified DB TLS, pinned inference deps, 400 for undecodable images, `ALLOW_REGISTRATION`.
+- Not covered: PRs #5/#6 (open), and Neon TLS, private Cloud Run auth and real latency, which need the accounts.
+
 ## Known issues
 
 - Live sampling drops to ~1–2 fps when the tab is hidden (browser throttles `toBlob`).
 - Uploads are stored on local disk; Cloud Run would lose them on restart. `/uploads/*` is served without auth (random UUID names only); the object-storage roadmap item with signed URLs fixes both.
 - `scripts/e2e_check.js` isn't in CI yet (needs a Postgres service container).
+- Login/register responses reveal whether an email has an account (minor for a demo).
 
 ## Next up
 
