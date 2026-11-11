@@ -127,10 +127,13 @@ async function main() {
   check('missing file returns 400', r.status === 400, `status ${r.status}: ${r.data?.error}`);
 
   r = await inspect(tokenA, { source: 'video', conf: 0.25 });
+  // Default SAVE_VIDEO_FRAMES=defects: a video frame keeps its image only when the model found a defect.
   check(
-    'video-source inspection does not store an image',
-    r.status === 201 && r.data.inspection.image_url === null && r.data.inspection.source === 'video',
-    `status ${r.status}, image_url ${r.data?.inspection?.image_url}`,
+    'video frame keeps its image only if it has defects (SAVE_VIDEO_FRAMES=defects)',
+    r.status === 201 &&
+      r.data.inspection.source === 'video' &&
+      (r.data.inspection.defect_count > 0) === (r.data.inspection.image_url !== null),
+    `status ${r.status}, defects ${r.data?.inspection?.defect_count}, image_url ${r.data?.inspection?.image_url}`,
   );
 
   r = await inspect(tokenA, { source: 'upload', conf: 0.95 });
