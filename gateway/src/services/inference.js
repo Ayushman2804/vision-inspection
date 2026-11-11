@@ -15,9 +15,14 @@ export async function runInference(buffer, mimetype, conf) {
   } catch {
     throw new HttpError(502, 'Inference service unreachable');
   }
+  // The inference service rejects bytes it can't decode with 400; that's the client's file, not an outage.
+  if (res.status === 400) throw new HttpError(400, 'Could not read the image; upload a valid JPEG, PNG or WebP file');
+  if (res.status === 413) throw new HttpError(413, 'Image too large');
   if (!res.ok) {
+    // Full detail goes to the server log only; clients get a generic 502.
     const detail = await res.text().catch(() => '');
-    throw new HttpError(502, `Inference service error (${res.status}) ${detail.slice(0, 200)}`);
+    console.error(`Inference service error (${res.status}) ${detail.slice(0, 500)}`);
+    throw new HttpError(502, 'Inference service error');
   }
   return res.json();
 }

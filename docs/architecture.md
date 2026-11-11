@@ -36,8 +36,8 @@ PostgreSQL  (users, inspections, defects, alerts)
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| POST | `/api/auth/register`, `/api/auth/login` | – | 20 req/min limit; JWT valid 12 h; password ≥ 8 chars |
-| POST | `/api/inspect` | JWT | see flow above |
+| POST | `/api/auth/register`, `/api/auth/login` | – | 20 req/min limit; JWT valid 12 h; password ≥ 8 chars; register returns 403 when `ALLOW_REGISTRATION=false` |
+| POST | `/api/inspect` | JWT | see flow above; 400 if the image can't be decoded, generic 502 if inference fails |
 | GET | `/api/inspections` | JWT | filters `status`, `source`, `class`; `limit` 1–100, `offset` |
 | GET | `/api/stats?days=N` | JWT | N 1–90; hourly buckets when N ≤ 2, else daily; every bucket in the range is returned (empty ones as 0) |
 | GET | `/api/alerts` | JWT | last 50 |
@@ -70,8 +70,9 @@ Detector choice at startup: `MOCK_MODE=true` → `MockDetector`; else `MODEL_PAT
 |---|---|---|---|
 | gateway | `PORT` | 4000 | |
 | gateway | `DATABASE_URL` | local postgres | |
-| gateway | `DB_SSL` | false | true for Neon/Supabase |
+| gateway | `DB_SSL` | false | `true` = TLS with certificate verification (Neon); `no-verify` = TLS without verification, only for providers whose CA isn't publicly trusted |
 | gateway | `JWT_SECRET` | dev value | startup fails in production if unset |
+| gateway | `ALLOW_REGISTRATION` | true | `false` makes `POST /api/auth/register` return 403; existing accounts can still sign in |
 | gateway | `INFERENCE_URL` | http://localhost:8000 | |
 | gateway | `CORS_ORIGINS` | http://localhost:5173 | comma-separated |
 | gateway | `UPLOAD_DIR` | ./uploads | ephemeral on Cloud Run |

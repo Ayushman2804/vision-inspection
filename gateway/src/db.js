@@ -4,9 +4,19 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { config } from './config.js';
 
+/**
+ * DB_SSL: false (local Docker) | true (TLS, certificate verified; Neon) |
+ * no-verify (TLS without verifying the certificate; only for providers whose CA isn't publicly trusted).
+ */
+export function sslOptions(mode) {
+  if (mode === 'true') return { rejectUnauthorized: true };
+  if (mode === 'no-verify') return { rejectUnauthorized: false };
+  return undefined;
+}
+
 export const pool = new pg.Pool({
   connectionString: config.databaseUrl,
-  ssl: config.dbSsl ? { rejectUnauthorized: false } : undefined,
+  ssl: sslOptions(config.dbSsl),
   max: 10,
 });
 

@@ -229,16 +229,17 @@ Free tiers sleep after inactivity, so the first request can be slow (cold start)
 2. **Inference** (Google Cloud Run; commit `inference/models/best.onnx` first, the nano model is small):
    ```bash
    gcloud run deploy inspection-inference --source inference --region asia-south1 \
-     --memory 1Gi --cpu 2 --allow-unauthenticated \
+     --memory 512Mi --cpu 2 --max-instances 2 --allow-unauthenticated \
      --set-env-vars MODEL_VERSION=yolo26n-neu-det-v1
    ```
-   Better: deploy it as private (no `--allow-unauthenticated`) and let only the gateway call it.
+   Better: deploy it as private (no `--allow-unauthenticated`) and let only the gateway call it. 512 MiB is enough: the container uses ~175 MiB under load and is ready ~1.5 s after starting (measured locally). Python dependencies are pinned in `inference/requirements.txt`, so the build matches what was tested.
 3. **Gateway** (Cloud Run, Render or Railway):
    ```bash
    gcloud run deploy inspection-gateway --source gateway --region asia-south1 --allow-unauthenticated \
      --set-env-vars NODE_ENV=production,DB_SSL=true,JWT_SECRET=<long-random>,\
    DATABASE_URL=<neon-url>,INFERENCE_URL=<inference-url>,CORS_ORIGINS=<frontend-url>
    ```
+   `DB_SSL=true` verifies the database's TLS certificate (works with Neon); use `DB_SSL=no-verify` only for a provider whose certificate isn't publicly trusted. Add `ALLOW_REGISTRATION=false` once your accounts exist, so strangers can't sign up and run inference on your bill; also cap `--max-instances`.
    `UPLOAD_DIR` is local disk, which is ephemeral on Cloud Run. Uploaded originals disappear on restart; video frames are never stored. Move uploads to GCS or Cloudflare R2 when you improve this.
 4. **Frontend** (Vercel or Netlify): import the repo, set the root to `frontend`, and add `VITE_API_URL=<gateway-url>`. `frontend/vercel.json` handles client-side routing. Add the frontend URL to the gateway's `CORS_ORIGINS`.
 5. `frontend/public/sample.mp4` (committed, built from NEU-DET validation images) ships with the build, so "Load sample" works for visitors.
