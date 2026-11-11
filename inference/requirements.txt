@@ -1,6 +1,10 @@
-fastapi>=0.162
-uvicorn[standard]>=0.30
-python-multipart>=0.0.9
-onnxruntime>=1.31
-opencv-python-headless>=4.9
-numpy>=1.26,<3
+# Pinned so every Docker/Cloud Run build gets the versions that were tested (Python 3.13).
+# Bump deliberately: change a version, then run pytest, the parity check and scripts/e2e_check.js.
+fastapi==0.162.2
+starlette==1.10.0
+pydantic==2.14.3
+uvicorn[standard]==0.54.0
+python-multipart==0.0.33
+onnxruntime==1.31.1
+opencv-python-headless==5.0.0.93
+numpy==2.5.4
